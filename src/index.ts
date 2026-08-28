@@ -171,13 +171,22 @@ export function apply(ctx: Context, config: Config): void {
   )
   const adapterRegistration = ctx.llm.registerAdapter([OPENAI_CODEX_PROVIDER], adapter)
   let registeredModelMaxRetries = resolveOpenAICodexSettings(current()).modelMaxRetries
-  ctx.llm.registerConfigurableProviders([{
-    provider: OPENAI_CODEX_PROVIDER,
-    displayName: 'OpenAI Codex',
-    settingsNs: OPENAI_CODEX_SETTINGS_NS,
-    settingsPath: [],
-    declared: false,
-  }])
+  try {
+    ctx.llm.registerConfigurableProviders([{
+      provider: OPENAI_CODEX_PROVIDER,
+      displayName: 'OpenAI Codex',
+      settingsNs: OPENAI_CODEX_SETTINGS_NS,
+      settingsPath: [],
+      declared: false,
+    }])
+  } catch (error) {
+    // DSH's dsh-llm-pi-ai already registers every pi-ai catalog route into the
+    // configurable-provider directory, including "openai-codex". When that is
+    // the case, reuse the existing directory entry instead of colliding, so
+    // this plugin still supplies its adapter, auth, search and image features.
+    const code = (error as { code?: unknown })?.code
+    if (code !== 'DUPLICATE_DIRECTORY') throw error
+  }
   ctx.inject(['webServer'], webCtx => registerOpenAICodexAuthRoutes(webCtx, credentials))
 
   let stopped = false
