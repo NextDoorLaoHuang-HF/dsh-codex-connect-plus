@@ -90,10 +90,12 @@ afterEach(() => {
 })
 
 describe('OpenAI Codex Plugin configuration card', () => {
-  it('reports a blocked popup without starting an orphaned login', async () => {
+  it('falls back to a manual login link when the popup is refused', async () => {
     const fetchMock = vi.fn(async (input: string | URL | Request): Promise<Response> => {
-      expect(requestPath(input)).toBe(OPENAI_CODEX_AUTH_STATUS_PATH)
-      return json({ status: 'signed-out' })
+      const path = requestPath(input)
+      if (path === OPENAI_CODEX_AUTH_STATUS_PATH) return json({ status: 'signed-out' })
+      expect(path).toBe(OPENAI_CODEX_AUTH_LOGIN_PATH)
+      return json({ url: 'https://auth.openai.com/authorize?manual=1' })
     })
     vi.stubGlobal('fetch', fetchMock)
     vi.spyOn(window, 'open').mockReturnValue(null)
@@ -101,8 +103,10 @@ describe('OpenAI Codex Plugin configuration card', () => {
     render(<OpenAICodexSettings t={t} />)
     fireEvent.click(await screen.findByRole('button', { name: en.login }))
 
-    expect(await screen.findByText(en.popupBlocked)).toBeTruthy()
-    expect(fetchMock).toHaveBeenCalledTimes(1)
+    const link = await screen.findByRole('link', { name: en.openLoginPage })
+    expect(link.getAttribute('href')).toBe('https://auth.openai.com/authorize?manual=1')
+    expect(screen.getByText(en.manualLoginHeading)).toBeTruthy()
+    expect(screen.getByRole('button', { name: en.copyLoginLink })).toBeTruthy()
   })
 
   it('closes the popup and surfaces a failed login request', async () => {

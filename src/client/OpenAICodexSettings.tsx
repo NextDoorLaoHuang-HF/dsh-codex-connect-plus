@@ -187,6 +187,8 @@ export function OpenAICodexSettings({ t, form }: OpenAICodexSettingsProps) {
   if (t === undefined) throw new Error('OpenAI Codex settings requires its translation function')
   const [status, setStatus] = useState<AccountStatus>({ status: 'loading' })
   const [busy, setBusy] = useState(false)
+  const [manualUrl, setManualUrl] = useState<string>()
+  const [copied, setCopied] = useState(false)
   const mounted = useRef(true)
 
   useEffect(() => {
@@ -224,21 +226,27 @@ export function OpenAICodexSettings({ t, form }: OpenAICodexSettingsProps) {
   }, [refresh, status.status])
 
   const signIn = async (): Promise<void> => {
+    // Open synchronously inside the click gesture: popup blockers (and the
+    // Electron shell) refuse window.open after the first await.
     const popup = window.open('about:blank', '_blank')
-    if (popup === null) {
-      setStatus({ status: 'error', message: t('popupBlocked') })
-      return
-    }
-    popup.opener = null
+    if (popup !== null) popup.opener = null
+    setManualUrl(undefined)
     setBusy(true)
     setStatus({ status: 'signing-in' })
     try {
       const challenge = await jsonRequest<LoginChallenge>(OPENAI_CODEX_AUTH_LOGIN_PATH, 'POST')
       if (!mounted.current) {
-        popup.close()
+        popup?.close()
         return
       }
-      popup.location.replace(challenge.url)
+      if (popup !== null) {
+        popup.location.replace(challenge.url)
+        return
+      }
+      // Popups were refused (the desktop shell, or a strict blocker): the
+      // callback lives on this Harness's own loopback webserver, so finishing
+      // the login in any browser on this machine works equally well.
+      setManualUrl(challenge.url)
     } catch (error: unknown) {
       popup?.close()
       if (mounted.current) {
@@ -246,6 +254,17 @@ export function OpenAICodexSettings({ t, form }: OpenAICodexSettingsProps) {
       }
     } finally {
       if (mounted.current) setBusy(false)
+    }
+  }
+
+  const copyManualUrl = async (): Promise<void> => {
+    if (manualUrl === undefined) return
+    try {
+      await navigator.clipboard.writeText(manualUrl)
+      setCopied(true)
+      window.setTimeout(() => { if (mounted.current) setCopied(false) }, 2_000)
+    } catch {
+      /* Clipboard permission is optional; the link itself stays selectable. */
     }
   }
 
@@ -293,6 +312,25 @@ export function OpenAICodexSettings({ t, form }: OpenAICodexSettingsProps) {
             : <button type="button" style={primaryButtonStyle} disabled={busy} onClick={() => { void signIn() }}>{busy ? t('working') : status.status === 'error' ? t('loginAgain') : t('login')}</button>}
         </div>
         {status.status === 'error' ? <p style={errorStyle}>{status.message}</p> : null}
+        {manualUrl === undefined ? null : (
+          <div style={quotaGroupStyle} role="group" aria-label={t('manualLoginHeading')}>
+            <h4 style={quotaTitleStyle}>{t('manualLoginHeading')}</h4>
+            <p style={bodyStyle}>{t('manualLoginHint')}</p>
+            <div style={rowStyle}>
+              <a
+                href={manualUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                style={{ ...buttonStyle, textDecoration: 'none', display: 'inline-flex', alignItems: 'center' }}
+              >
+                {t('openLoginPage')}
+              </a>
+              <button type="button" style={buttonStyle} onClick={() => { void copyManualUrl() }}>
+                {copied ? t('linkCopied') : t('copyLoginLink')}
+              </button>
+            </div>
+          </div>
+        )}
         {status.status === 'signed-in'
           ? <UsageLimits
               usage={status.usage}
