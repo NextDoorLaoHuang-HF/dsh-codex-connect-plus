@@ -100,6 +100,15 @@ declare function decodeCodexImageResponse(value: unknown): DecodedCodexImage[];
 //#region src/view-image.d.ts
 /** Stable Codex tool name. */
 declare const VIEW_IMAGE_TOOL_NAME = "view_image";
+declare module '@deepseek-ai/dsh-llm' {
+  interface MessageSourceMap {
+    /** Images deferred into the conversation by this plugin's view_image tool. */
+    'openai-codex-plugin': {
+      kind: 'openai-codex-plugin';
+      plugin: 'dsh-codex-connect-plus';
+    };
+  }
+}
 //#endregion
 //#region src/doctor.d.ts
 /** Inputs that are safe to obtain without booting OAuth. */
@@ -376,8 +385,8 @@ declare function openAICodexAuthStatus(store?: OpenAICodexCredentialStore): Prom
 declare const name = "llm-openai-codex";
 /** The model registry required before the provider can register. */
 declare const inject: string[];
-/** Branded Host settings namespace used by the configurable-provider directory. */
-declare const OPENAI_CODEX_SETTINGS_NS: import("@deepseek-ai/dsh-settings").SettingsNamespace;
+/** Harness settings entry id (the plugin entry) that owns this section. */
+declare const OPENAI_CODEX_SETTINGS_NS = "llm-openai-codex";
 /** Composite model and standalone-search configuration. */
 interface Config {
   /** Extra full model requests after a transient failure (default 0, maximum 2). */
@@ -397,14 +406,51 @@ interface Config {
   /** Maximum generated tokens returned by the standalone search endpoint. */
   searchMaxOutputTokens?: number;
 }
-declare const Config: z<Config>;
+/**
+ * Parsed shape of {@link Config} on Harness 0.2: every field is volatile, so
+ * the loader hands the plugin stable references whose snapshots update in
+ * place after Settings edits instead of remounting the entry.
+ */
+interface VolatileConfig {
+  modelMaxRetries: VolatileRef<number>;
+  enableSearch: VolatileRef<boolean>;
+  enableImageTool: VolatileRef<boolean>;
+  enableImageGeneration: VolatileRef<boolean>;
+  searchModel: VolatileRef<string>;
+  searchMode: VolatileRef<OpenAICodexSearchMode>;
+  searchContextSize: VolatileRef<OpenAICodexSearchContextSize>;
+  searchMaxOutputTokens: VolatileRef<number>;
+}
+/** Minimal local view of the loader-owned stable config reference. */
+interface VolatileRef<T> {
+  get(): T;
+}
+declare const Config: z<Schemastery.ObjectS<NoInfer<{
+  modelMaxRetries: z<number, number, "volatile-defined">;
+  enableSearch: z<boolean, boolean, "volatile-defined">;
+  enableImageTool: z<boolean, boolean, "volatile-defined">;
+  enableImageGeneration: z<boolean, boolean, "volatile-defined">;
+  searchModel: z<string, string, "volatile-defined">;
+  searchMode: z<"cached" | "indexed" | "live", "cached" | "indexed" | "live", "volatile-defined">;
+  searchContextSize: z<"low" | "medium" | "high", "low" | "medium" | "high", "volatile-defined">;
+  searchMaxOutputTokens: z<number, number, "volatile-defined">;
+}>>, Schemastery.ObjectT<NoInfer<{
+  modelMaxRetries: z<number, number, "volatile-defined">;
+  enableSearch: z<boolean, boolean, "volatile-defined">;
+  enableImageTool: z<boolean, boolean, "volatile-defined">;
+  enableImageGeneration: z<boolean, boolean, "volatile-defined">;
+  searchModel: z<string, string, "volatile-defined">;
+  searchMode: z<"cached" | "indexed" | "live", "cached" | "indexed" | "live", "volatile-defined">;
+  searchContextSize: z<"low" | "medium" | "high", "low" | "medium" | "high", "volatile-defined">;
+  searchMaxOutputTokens: z<number, number, "volatile-defined">;
+}>>, "plain">;
 /**
  * Register the `openai-codex` LLM route with one provider-native OAuth store.
  * Search and image tooling are added only when their config flags are true.
  * Selecting this route as the Harness default remains a separate profile choice.
  * @param ctx - plugin context carrying the LLM registry plus optional services.
- * @param config - capability gates and standalone-search tuning.
+ * @param config - capability gates and standalone-search tuning as volatile references.
  */
-declare function apply(ctx: Context, config: Config): void;
+declare function apply(ctx: Context, config: VolatileConfig): void;
 //#endregion
-export { CODEX_IMAGE_EDIT_TOOL_NAME, CODEX_IMAGE_EDIT_URL, CODEX_IMAGE_GENERATE_TOOL_NAME, CODEX_IMAGE_GENERATE_URL, CODEX_IMAGE_MODEL, Config, DEFAULT_OPENAI_CODEX_MODEL_MAX_RETRIES, DEFAULT_OPENAI_CODEX_SEARCH_CONTEXT_SIZE, DEFAULT_OPENAI_CODEX_SEARCH_MAX_OUTPUT_TOKENS, DEFAULT_OPENAI_CODEX_SEARCH_MODE, DEFAULT_OPENAI_CODEX_SEARCH_MODEL, DEFAULT_OPENAI_CODEX_SETTINGS, MAX_OPENAI_CODEX_MODEL_RETRIES, OPENAI_CODEX_AUTH_FILENAME, OPENAI_CODEX_BASE_URL, OPENAI_CODEX_PROVIDER, OPENAI_CODEX_SEARCH_MODEL_REQUEST_EVENT, OPENAI_CODEX_SEARCH_PROVIDER, OPENAI_CODEX_SEARCH_URL, OPENAI_CODEX_SETTINGS_NAMESPACE, OPENAI_CODEX_SETTINGS_NS, OPENAI_CODEX_USAGE_URL, type OpenAICodexAuthStatus, OpenAICodexCredentialStore, type OpenAICodexCredits, type OpenAICodexDiagnosticOptions, type OpenAICodexDiagnosticReport, type OpenAICodexIndividualLimit, type OpenAICodexRateLimit, type OpenAICodexRateLimitWindow, type OpenAICodexSearchContextSize, type OpenAICodexSearchMode, OpenAICodexSearchProvider, type OpenAICodexSearchProviderOptions, type OpenAICodexSearchRequestRecord, type OpenAICodexSettingsConfig, type OpenAICodexUsage, VIEW_IMAGE_TOOL_NAME, apply, assertNoOpenAICodexProviderConflict, createCodexImageRequest, decodeCodexImageResponse, decodeOpenAICodexSettings, detectCodexImageType, diagnoseOpenAICodex, inject, installOpenAICodexSearchEvent, loginOpenAICodex, logoutOpenAICodex, mapOpenAICodexSearchResponse, name, openAICodexAuthPath, openAICodexAuthStatus, openAICodexConflictMessage, parseOpenAICodexUsage, readOpenAICodexRateLimits, recordOpenAICodexSearchRequest, resolveCodexImageSize, resolveOpenAICodexSettings, safeCodexImageHttpError };
+export { CODEX_IMAGE_EDIT_TOOL_NAME, CODEX_IMAGE_EDIT_URL, CODEX_IMAGE_GENERATE_TOOL_NAME, CODEX_IMAGE_GENERATE_URL, CODEX_IMAGE_MODEL, Config, DEFAULT_OPENAI_CODEX_MODEL_MAX_RETRIES, DEFAULT_OPENAI_CODEX_SEARCH_CONTEXT_SIZE, DEFAULT_OPENAI_CODEX_SEARCH_MAX_OUTPUT_TOKENS, DEFAULT_OPENAI_CODEX_SEARCH_MODE, DEFAULT_OPENAI_CODEX_SEARCH_MODEL, DEFAULT_OPENAI_CODEX_SETTINGS, MAX_OPENAI_CODEX_MODEL_RETRIES, OPENAI_CODEX_AUTH_FILENAME, OPENAI_CODEX_BASE_URL, OPENAI_CODEX_PROVIDER, OPENAI_CODEX_SEARCH_MODEL_REQUEST_EVENT, OPENAI_CODEX_SEARCH_PROVIDER, OPENAI_CODEX_SEARCH_URL, OPENAI_CODEX_SETTINGS_NAMESPACE, OPENAI_CODEX_SETTINGS_NS, OPENAI_CODEX_USAGE_URL, type OpenAICodexAuthStatus, OpenAICodexCredentialStore, type OpenAICodexCredits, type OpenAICodexDiagnosticOptions, type OpenAICodexDiagnosticReport, type OpenAICodexIndividualLimit, type OpenAICodexRateLimit, type OpenAICodexRateLimitWindow, type OpenAICodexSearchContextSize, type OpenAICodexSearchMode, OpenAICodexSearchProvider, type OpenAICodexSearchProviderOptions, type OpenAICodexSearchRequestRecord, type OpenAICodexSettingsConfig, type OpenAICodexUsage, VIEW_IMAGE_TOOL_NAME, VolatileConfig, apply, assertNoOpenAICodexProviderConflict, createCodexImageRequest, decodeCodexImageResponse, decodeOpenAICodexSettings, detectCodexImageType, diagnoseOpenAICodex, inject, installOpenAICodexSearchEvent, loginOpenAICodex, logoutOpenAICodex, mapOpenAICodexSearchResponse, name, openAICodexAuthPath, openAICodexAuthStatus, openAICodexConflictMessage, parseOpenAICodexUsage, readOpenAICodexRateLimits, recordOpenAICodexSearchRequest, resolveCodexImageSize, resolveOpenAICodexSettings, safeCodexImageHttpError };

@@ -16,7 +16,10 @@ describe('Codex image tool view', () => {
     const revoke = vi.spyOn(URL, 'revokeObjectURL').mockImplementation(() => undefined)
     const loadImage = vi.fn(async () => 'blob:session-authorized')
     const block = {
-      kind: 'result',
+      kind: 'tool-result',
+      seq: 1,
+      time: 0,
+      callTime: null,
       call: { argsRaw: JSON.stringify({ prompt: 'a red panda' }) },
       content: [{
         type: 'image',
@@ -50,7 +53,7 @@ describe('Codex image tool view', () => {
     const props = {
       toolName: CODEX_IMAGE_GENERATE_TOOL_NAME,
       callId: 'call-2',
-      block: { argsRaw: JSON.stringify({ prompt: 'poster' }) },
+      block: { phase: 'start', argsRaw: JSON.stringify({ prompt: 'poster' }) },
       cwd: 'C:/workspace',
       openFile: () => undefined,
       inspect: () => undefined,

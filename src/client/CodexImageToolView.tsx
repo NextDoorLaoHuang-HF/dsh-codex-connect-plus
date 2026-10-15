@@ -4,15 +4,12 @@
 import { useEffect, useMemo, useState } from 'react'
 import type { CSSProperties } from 'react'
 import type { ImageAttachmentRef } from '@deepseek-ai/dsh-attachment'
-import type { ImageLoader } from '@deepseek-ai/dsh-client-ui-attachment'
+import type { MessageImageLoader } from '@deepseek-ai/dsh-client-ui-conversation/client'
+import type { StartedToolCall, ToolResultNode } from '@deepseek-ai/dsh-client-ui-conversation/client'
 import type { ToolCallViewProps } from '@deepseek-ai/dsh-client-ui-tool/client'
 import { CODEX_IMAGE_EDIT_TOOL_NAME } from '../images/contract.ts'
 
-export interface CodexImageToolViewInjected {
-  loadImage: ImageLoader
-}
-
-type CodexImageToolViewProps = ToolCallViewProps & Partial<CodexImageToolViewInjected>
+type CodexImageToolViewProps = ToolCallViewProps
 
 const cardStyle: CSSProperties = { boxSizing: 'border-box', maxWidth: 720, padding: '12px 14px', border: '1px solid var(--dsw-alias-border-l1)', borderRadius: 8, background: 'var(--dsw-alias-bg-module-platform)', display: 'flex', flexDirection: 'column', gap: 10 }
 const headStyle: CSSProperties = { display: 'flex', justifyContent: 'space-between', gap: 10, fontSize: 14, color: 'var(--dsw-alias-label-primary)' }
@@ -23,8 +20,7 @@ const imageStyle: CSSProperties = { display: 'block', width: '100%', aspectRatio
 const overlayStyle: CSSProperties = { position: 'fixed', inset: 0, zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 32, background: 'rgba(8, 10, 16, .82)', cursor: 'zoom-out' }
 const overlayImageStyle: CSSProperties = { maxWidth: '92vw', maxHeight: '86vh', borderRadius: 8 }
 
-function argsOf(block: ToolCallViewProps['block']): Record<string, unknown> {
-  const raw = 'kind' in block ? block.call?.argsRaw : block.argsRaw
+function parseArgsRaw(raw: string | undefined): Record<string, unknown> {
   if (typeof raw !== 'string' || raw.length === 0) return {}
   try {
     const value: unknown = JSON.parse(raw)
@@ -34,14 +30,21 @@ function argsOf(block: ToolCallViewProps['block']): Record<string, unknown> {
   }
 }
 
-function imagesOf(block: ToolCallViewProps['block']): readonly ImageAttachmentRef[] {
-  if (!('kind' in block)) return []
-  return block.content.flatMap(content => content.type === 'image' ? [content.attachment] : [])
+function argsOf(block: ToolCallViewProps['block']): Record<string, unknown> {
+  if (!('phase' in block)) return parseArgsRaw(block.call === null ? undefined : block.call.argsRaw)
+  if (block.phase === 'start') return parseArgsRaw(block.argsRaw)
+  return {}
+}
+
+function imagesOf(block: ToolResultNode): readonly ImageAttachmentRef[] {
+  return block.content.flatMap(content => content.type === 'image' && content.offloaded !== true
+    ? [content.attachment]
+    : [])
 }
 
 function AuthorizedImage({ image, loadImage, alt, onOpen }: {
   image: ImageAttachmentRef
-  loadImage: ImageLoader
+  loadImage: MessageImageLoader
   alt: string
   onOpen: (url: string) => void
 }) {
@@ -70,7 +73,7 @@ function AuthorizedImage({ image, loadImage, alt, onOpen }: {
 /** Render running, failed, and completed gpt-image-2 calls through the owning session. */
 export function CodexImageToolView({ toolName, block, loadImage }: CodexImageToolViewProps) {
   const args = useMemo(() => argsOf(block), [block])
-  const images = useMemo(() => imagesOf(block), [block])
+  const images = useMemo(() => 'phase' in block ? [] : imagesOf(block), [block])
   const [lightbox, setLightbox] = useState<string>()
   useEffect(() => {
     if (lightbox === undefined) return undefined
@@ -80,7 +83,7 @@ export function CodexImageToolView({ toolName, block, loadImage }: CodexImageToo
   }, [lightbox])
   const title = toolName === CODEX_IMAGE_EDIT_TOOL_NAME ? 'Codex 图片编辑' : 'Codex 文生图'
   const prompt = typeof args['prompt'] === 'string' ? args['prompt'] : undefined
-  if (!('kind' in block)) {
+  if ('phase' in block) {
     return (
       <div style={cardStyle}>
         <div style={headStyle}><strong>{title}</strong><span style={metaStyle}>生成中</span></div>
@@ -89,7 +92,7 @@ export function CodexImageToolView({ toolName, block, loadImage }: CodexImageToo
       </div>
     )
   }
-  if (images.length === 0 || loadImage === undefined) {
+  if (images.length === 0) {
     const text = block.content.filter(content => content.type === 'text').map(content => content.text).join('\n')
     return (
       <div style={cardStyle}>

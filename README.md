@@ -40,7 +40,7 @@ Sign in once with ChatGPT OAuth. Codex model requests use the signed-in account'
 
 ## Requirements
 
-- **DeepSeek Harness `0.1.0-rc.7` or newer.** This release is adapted to the rc.7 keyed-slot settings-card API. On older Harness versions the package still installs (the plugin system does not enforce peer ranges), but the Plugin configuration card may not render, so upgrade Harness first or stay on `0.1.0-beta.2` for `0.1.0-rc.5`/`rc.6`-era Harness.
+- **DeepSeek Harness `0.2.0-rc.2` or newer.** This release is adapted to the 0.2.x browser slot table (`settings.plugins.tab`), the ConfigForms settings transport, volatile plugin configuration, and the pi-ai `0.87` provider API. On `0.1.0-rc.7`-era Harness use `0.1.0-beta.4` instead.
 - Node.js `^22.19.0 || >=24.0.0`.
 
 ## Install
@@ -54,7 +54,7 @@ dsh plugin --profile web add dsh-codex-connect-plus@beta
 Immutable GitHub fallback:
 
 ```sh
-dsh plugin --profile web add 'github:stoneface10/dsh-codex-connect-plus#v0.1.0-beta.4'
+dsh plugin --profile web add 'github:stoneface10/dsh-codex-connect-plus#v0.2.0-beta.1'
 ```
 
 A matching `.tgz` is also attached to the GitHub prerelease.

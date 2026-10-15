@@ -2,7 +2,7 @@
 
 import { act, cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import type { SettingsScope, SettingsScopeSnapshot } from '@deepseek-ai/dsh-client-runtime/client'
+import type { ConfigForm, ConfigFormSnapshot } from '@deepseek-ai/dsh-client-ui-settings/client'
 import { OpenAICodexSettings } from '../src/client/OpenAICodexSettings.tsx'
 import { en } from '../src/client/locales.ts'
 import type { OpenAICodexSettingsKey } from '../src/client/locales.ts'
@@ -42,11 +42,11 @@ function popupFixture(): { popup: Window; close: ReturnType<typeof vi.fn>; repla
   }
 }
 
-function settingsScopeFixture(writable = true): {
-  scope: SettingsScope<OpenAICodexSettingsConfig>
+function configFormFixture(writable = true): {
+  form: ConfigForm<OpenAICodexSettingsConfig>
   set: ReturnType<typeof vi.fn>
 } {
-  let snapshot: SettingsScopeSnapshot<OpenAICodexSettingsConfig> = {
+  let snapshot: ConfigFormSnapshot<OpenAICodexSettingsConfig> = {
     status: 'ready',
     value: { ...DEFAULT_OPENAI_CODEX_SETTINGS },
     base: { ...DEFAULT_OPENAI_CODEX_SETTINGS },
@@ -56,7 +56,7 @@ function settingsScopeFixture(writable = true): {
     mode: 'host',
   }
   const listeners = new Set<() => void>()
-  const set = vi.fn(async (field: string, value: unknown) => {
+  const set = vi.fn(async (field: string, value: unknown): Promise<boolean> => {
     const current = snapshot.value
     if (current === undefined || !(field in current)) throw new Error(`unknown field ${field}`)
     snapshot = {
@@ -66,17 +66,19 @@ function settingsScopeFixture(writable = true): {
       revision: (snapshot.revision ?? 0) + 1,
     }
     for (const listener of listeners) listener()
+    return true
   })
   return {
     set,
-    scope: {
+    form: {
       getSnapshot: () => snapshot,
       subscribe(listener) {
         listeners.add(listener)
         return () => { listeners.delete(listener) }
       },
       set,
-      unset: vi.fn(async () => undefined),
+      unset: vi.fn(async (): Promise<boolean> => true),
+      mutate: vi.fn(async (): Promise<boolean> => true),
     },
   }
 }
@@ -96,7 +98,7 @@ describe('OpenAI Codex Plugin configuration card', () => {
     vi.stubGlobal('fetch', fetchMock)
     vi.spyOn(window, 'open').mockReturnValue(null)
 
-    render(<OpenAICodexSettings t={t} embedded />)
+    render(<OpenAICodexSettings t={t} />)
     fireEvent.click(await screen.findByRole('button', { name: en.login }))
 
     expect(await screen.findByText(en.popupBlocked)).toBeTruthy()
@@ -114,7 +116,7 @@ describe('OpenAI Codex Plugin configuration card', () => {
     vi.stubGlobal('fetch', fetchMock)
     vi.spyOn(window, 'open').mockReturnValue(popup)
 
-    render(<OpenAICodexSettings t={t} embedded />)
+    render(<OpenAICodexSettings t={t} />)
     fireEvent.click(await screen.findByRole('button', { name: en.login }))
 
     expect(await screen.findByText('OAuth is unavailable')).toBeTruthy()
@@ -141,7 +143,7 @@ describe('OpenAI Codex Plugin configuration card', () => {
     })
     vi.stubGlobal('fetch', fetchMock)
 
-    render(<OpenAICodexSettings t={t} embedded />)
+    render(<OpenAICodexSettings t={t} />)
     const progress = await screen.findByRole('progressbar', { name: en.fiveHourLimit })
     expect(progress.getAttribute('aria-valuenow')).toBe('72.5')
     expect(progress.getAttribute('aria-valuetext')).toBe('72.5% remaining')
@@ -161,7 +163,7 @@ describe('OpenAI Codex Plugin configuration card', () => {
     vi.stubGlobal('fetch', fetchMock)
     vi.spyOn(window, 'open').mockReturnValue(popup)
 
-    render(<OpenAICodexSettings t={t} embedded />)
+    render(<OpenAICodexSettings t={t} />)
     fireEvent.click(await screen.findByRole('button', { name: en.login }))
     const working = await screen.findByRole('button', { name: en.working })
     expect((working as HTMLButtonElement).disabled).toBe(true)
@@ -180,7 +182,7 @@ describe('OpenAI Codex Plugin configuration card', () => {
     })
     vi.stubGlobal('fetch', fetchMock)
 
-    const rendered = render(<OpenAICodexSettings t={t} embedded />)
+    const rendered = render(<OpenAICodexSettings t={t} />)
     rendered.unmount()
 
     expect(statusSignal?.aborted).toBe(true)
@@ -197,7 +199,7 @@ describe('OpenAI Codex Plugin configuration card', () => {
     })
     vi.stubGlobal('fetch', fetchMock)
 
-    render(<OpenAICodexSettings t={t} embedded />)
+    render(<OpenAICodexSettings t={t} />)
     fireEvent.click(await screen.findByRole('button', { name: en.logout }))
 
     expect(await screen.findByText('Could not sign out')).toBeTruthy()
@@ -206,10 +208,10 @@ describe('OpenAI Codex Plugin configuration card', () => {
 
   it('stages, discards, and saves optional capability settings in the same card', async () => {
     const fetchMock = vi.fn(async (): Promise<Response> => json({ status: 'signed-out' }))
-    const { scope, set } = settingsScopeFixture()
+    const { form, set } = configFormFixture()
     vi.stubGlobal('fetch', fetchMock)
 
-    render(<OpenAICodexSettings t={t} configScope={scope} embedded />)
+    render(<OpenAICodexSettings t={t} form={form} />)
     const enableSearch = await screen.findByRole('checkbox', { name: /Enable Codex search provider/u }) as HTMLInputElement
     const model = screen.getByRole('textbox', { name: en.searchModel }) as HTMLInputElement
     expect(enableSearch.checked).toBe(false)
@@ -237,10 +239,10 @@ describe('OpenAI Codex Plugin configuration card', () => {
 
   it('disables capability edits when the Host settings document is read-only', async () => {
     const fetchMock = vi.fn(async (): Promise<Response> => json({ status: 'signed-out' }))
-    const { scope } = settingsScopeFixture(false)
+    const { form } = configFormFixture(false)
     vi.stubGlobal('fetch', fetchMock)
 
-    render(<OpenAICodexSettings t={t} configScope={scope} embedded />)
+    render(<OpenAICodexSettings t={t} form={form} />)
 
     expect(await screen.findByText(en.settingsReadOnly)).toBeTruthy()
     expect(document.querySelector('fieldset')?.disabled).toBe(true)

@@ -8,7 +8,7 @@
 import type { Context, Fiber } from '@deepseek-ai/cordis'
 import { randomUUID } from 'node:crypto'
 import z from '@deepseek-ai/schemastery'
-import { deepEqualJson, installSettingsSection, settingsNamespace } from '@deepseek-ai/dsh-settings'
+import type {} from '@deepseek-ai/dsh-settings'
 import type {} from '@deepseek-ai/dsh-attachment'
 import type {} from '@deepseek-ai/dsh-agent'
 import type {} from '@deepseek-ai/dsh-session'
@@ -75,6 +75,7 @@ import {
   OPENAI_CODEX_SETTINGS_NAMESPACE,
   resolveOpenAICodexSettings,
 } from './settings-contract.ts'
+import type { OpenAICodexSettingsConfig } from './settings-contract.ts'
 
 export {
   decodeOpenAICodexSettings,
@@ -118,8 +119,8 @@ export const name = 'llm-openai-codex'
 /** The model registry required before the provider can register. */
 export const inject = ['llm']
 
-/** Branded Host settings namespace used by the configurable-provider directory. */
-export const OPENAI_CODEX_SETTINGS_NS = settingsNamespace(OPENAI_CODEX_SETTINGS_NAMESPACE)
+/** Harness settings entry id (the plugin entry) that owns this section. */
+export const OPENAI_CODEX_SETTINGS_NS = OPENAI_CODEX_SETTINGS_NAMESPACE
 
 /** Composite model and standalone-search configuration. */
 export interface Config {
@@ -141,15 +142,60 @@ export interface Config {
   searchMaxOutputTokens?: number
 }
 
-export const Config: z<Config> = z.object({
-  modelMaxRetries: z.number().step(1).min(0).max(MAX_OPENAI_CODEX_MODEL_RETRIES).default(0),
-  enableSearch: z.boolean().default(false),
-  enableImageTool: z.boolean().default(false),
-  enableImageGeneration: z.boolean().default(true),
-  searchModel: z.string().default(DEFAULT_OPENAI_CODEX_SEARCH_MODEL),
-  searchMode: z.union(['cached', 'indexed', 'live'] as const).default(DEFAULT_OPENAI_CODEX_SEARCH_MODE),
-  searchContextSize: z.union(['low', 'medium', 'high'] as const).default(DEFAULT_OPENAI_CODEX_SEARCH_CONTEXT_SIZE),
-  searchMaxOutputTokens: z.number().step(1).min(1).default(DEFAULT_OPENAI_CODEX_SEARCH_MAX_OUTPUT_TOKENS),
+/**
+ * Parsed shape of {@link Config} on Harness 0.2: every field is volatile, so
+ * the loader hands the plugin stable references whose snapshots update in
+ * place after Settings edits instead of remounting the entry.
+ */
+export interface VolatileConfig {
+  modelMaxRetries: VolatileRef<number>
+  enableSearch: VolatileRef<boolean>
+  enableImageTool: VolatileRef<boolean>
+  enableImageGeneration: VolatileRef<boolean>
+  searchModel: VolatileRef<string>
+  searchMode: VolatileRef<OpenAICodexSearchMode>
+  searchContextSize: VolatileRef<OpenAICodexSearchContextSize>
+  searchMaxOutputTokens: VolatileRef<number>
+}
+
+/** Minimal local view of the loader-owned stable config reference. */
+interface VolatileRef<T> {
+  get(): T
+}
+
+/** Read the current snapshot of one volatile-or-plain config field. */
+function readLive<T>(value: VolatileRef<T> | T): T {
+  const ref = value as VolatileRef<T> | undefined
+  return typeof ref === 'object' && ref !== null && typeof ref.get === 'function'
+    ? ref.get()
+    : value as T
+}
+
+/** Structural JSON equality used to dedupe capability reconciliations. */
+function deepEqualJson(a: unknown, b: unknown): boolean {
+  if (a === b) return true
+  const left = typeof a === 'object' && a !== null
+  const right = typeof b === 'object' && b !== null
+  if (!left || !right) return false
+  if (Array.isArray(a) || Array.isArray(b)) {
+    if (!Array.isArray(a) || !Array.isArray(b) || a.length !== b.length) return false
+    return a.every((item, index) => deepEqualJson(item, b[index]))
+  }
+  const aKeys = Object.keys(a)
+  const bKeys = Object.keys(b)
+  if (aKeys.length !== bKeys.length) return false
+  return aKeys.every(key => key in b && deepEqualJson((a as Record<string, unknown>)[key], (b as Record<string, unknown>)[key]))
+}
+
+export const Config = z.object({
+  modelMaxRetries: z.number().step(1).min(0).max(MAX_OPENAI_CODEX_MODEL_RETRIES).default(0).volatile(),
+  enableSearch: z.boolean().default(false).volatile(),
+  enableImageTool: z.boolean().default(false).volatile(),
+  enableImageGeneration: z.boolean().default(true).volatile(),
+  searchModel: z.string().default(DEFAULT_OPENAI_CODEX_SEARCH_MODEL).volatile(),
+  searchMode: z.union(['cached', 'indexed', 'live'] as const).default(DEFAULT_OPENAI_CODEX_SEARCH_MODE).volatile(),
+  searchContextSize: z.union(['low', 'medium', 'high'] as const).default(DEFAULT_OPENAI_CODEX_SEARCH_CONTEXT_SIZE).volatile(),
+  searchMaxOutputTokens: z.number().step(1).min(1).default(DEFAULT_OPENAI_CODEX_SEARCH_MAX_OUTPUT_TOKENS).volatile(),
 })
 
 /**
@@ -157,27 +203,50 @@ export const Config: z<Config> = z.object({
  * Search and image tooling are added only when their config flags are true.
  * Selecting this route as the Harness default remains a separate profile choice.
  * @param ctx - plugin context carrying the LLM registry plus optional services.
- * @param config - capability gates and standalone-search tuning.
+ * @param config - capability gates and standalone-search tuning as volatile references.
  */
-export function apply(ctx: Context, config: Config): void {
-  let current = () => config
+export function apply(ctx: Context, config: VolatileConfig): void {
+  const current = (): OpenAICodexSettingsConfig => resolveOpenAICodexSettings({
+    modelMaxRetries: readLive(config.modelMaxRetries),
+    enableSearch: readLive(config.enableSearch),
+    enableImageTool: readLive(config.enableImageTool),
+    enableImageGeneration: readLive(config.enableImageGeneration),
+    searchModel: readLive(config.searchModel),
+    searchMode: readLive(config.searchMode),
+    searchContextSize: readLive(config.searchContextSize),
+    searchMaxOutputTokens: readLive(config.searchMaxOutputTokens),
+  })
   const credentials = new OpenAICodexCredentialStore()
   const auth = new OpenAICodexAuthRuntime(credentials)
   assertNoOpenAICodexProviderConflict(ctx.llm.listProviders().map(provider => provider.id))
   const adapter = createOpenAICodexAdapter(
     auth,
+    credentials,
     () => ctx.get('attachments'),
     () => resolveOpenAICodexSettings(current()).modelMaxRetries,
   )
   const adapterRegistration = ctx.llm.registerAdapter([OPENAI_CODEX_PROVIDER], adapter)
   let registeredModelMaxRetries = resolveOpenAICodexSettings(current()).modelMaxRetries
-  ctx.llm.registerConfigurableProviders([{
-    provider: OPENAI_CODEX_PROVIDER,
-    displayName: 'OpenAI Codex',
-    settingsNs: OPENAI_CODEX_SETTINGS_NS,
-    settingsPath: [],
-    declared: false,
-  }])
+  // Harness 0.2's built-in llm-pi-ai declares every pi-ai catalog provider —
+  // including openai-codex — in the configurable-provider directory, and a
+  // provider id may hold exactly one directory entry. Register ours only when
+  // the route is still unclaimed; the OAuth adapter and this plugin's own
+  // Plugins-tab card work identically either way.
+  if (!ctx.llm.listConfigurableProviders().some(entry => entry.provider === OPENAI_CODEX_PROVIDER)) {
+    ctx.llm.registerConfigurableProviders([{
+      provider: OPENAI_CODEX_PROVIDER,
+      displayName: 'OpenAI Codex',
+      settingsNs: OPENAI_CODEX_SETTINGS_NS,
+      settingsPath: [],
+      declared: false,
+    }])
+  } else {
+    ctx.logger.info(
+      'dsh-codex-connect-plus: the built-in provider directory already declares "%s"; '
+      + 'keeping that entry and owning the OAuth-backed adapter for the route',
+      OPENAI_CODEX_PROVIDER,
+    )
+  }
   ctx.inject(['webServer'], webCtx => registerOpenAICodexAuthRoutes(webCtx, credentials))
 
   let stopped = false
@@ -304,9 +373,16 @@ export function apply(ctx: Context, config: Config): void {
     ])
   }, 'dsh-codex-connect-plus: optional capability lifecycle')
 
-  installSettingsSection(ctx, OPENAI_CODEX_SETTINGS_NS, Config, config, {
-    setSource(source) { current = source },
-    onChange: scheduleCapabilities,
-  })
+  // The browser half registers this plugin's dedicated Plugins-tab card, so
+  // suppress the schema-derived fallback page the Settings forms would
+  // otherwise auto-generate for this entry.
+  ctx.inject(['settings'], settingsCtx => settingsCtx.effect(
+    () => settingsCtx.settings.configure({ auto: false }, ctx.fiber),
+    'dsh-codex-connect-plus: settings page policy',
+  ))
+
+  // Volatile fields update their references in place; the loader emits this
+  // fiber-scoped event whenever a Settings edit commits new snapshots.
+  ctx.on('loader/volatile-update', () => { scheduleCapabilities() })
   scheduleCapabilities()
 }

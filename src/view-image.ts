@@ -15,6 +15,16 @@ import { fetchPublicHttpResource } from './public-http.ts'
 /** Stable Codex tool name. */
 export const VIEW_IMAGE_TOOL_NAME = 'view_image'
 
+declare module '@deepseek-ai/dsh-llm' {
+  interface MessageSourceMap {
+    /** Images deferred into the conversation by this plugin's view_image tool. */
+    'openai-codex-plugin': {
+      kind: 'openai-codex-plugin'
+      plugin: 'dsh-codex-connect-plus'
+    }
+  }
+}
+
 interface ViewImageValue {
   source: string
   image: {
@@ -157,7 +167,7 @@ export function viewImageTool(ctx: Context): ToolDefinition {
       if (exec.parent !== undefined) {
         exec.deferContext(createUserMessage({
           content: contentOf(value),
-          source: { kind: 'plugin', plugin: 'dsh-codex-connect-plus' },
+          source: { kind: 'openai-codex-plugin', plugin: 'dsh-codex-connect-plus' },
         }))
       }
       return value

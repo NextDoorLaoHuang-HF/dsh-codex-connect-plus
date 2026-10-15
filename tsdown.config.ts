@@ -6,20 +6,11 @@ const PACKAGE_VERSION = (JSON.parse(
   readFileSync(new URL('./package.json', import.meta.url), 'utf8'),
 ) as { version: string }).version
 // Must stay aligned with DSH's browser module table. Any other @deepseek-ai
-// runtime value import is a Host/client boundary violation and fails the build.
+// runtime value import is a Host/client boundary violation and fails the build;
+// every cross-package import in the client half is type-only and erased.
 const CLIENT_EXTERNALS = [
   'react',
   'react/jsx-runtime',
-  'react-dom',
-  'react-dom/client',
-  '@deepseek-ai/cordis',
-  '@deepseek-ai/dsh-client-ui-slots',
-  '@deepseek-ai/dsh-client-web-react',
-  '@deepseek-ai/dsh-client-ui-primitives',
-  '@deepseek-ai/dsh-client-ui-attachment',
-  '@deepseek-ai/dsh-client-schema-form',
-  // Temporary DSH runtime-store exemption used by the current web shell.
-  '@deepseek-ai/dsh-client-runtime/client',
 ] as const
 
 export default [

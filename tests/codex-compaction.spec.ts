@@ -6,7 +6,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest'
 import { Context } from '@deepseek-ai/cordis'
 import {
   BlockAssembler,
-  CallId,
+  ToolCallId,
   createAssistantMessage,
   createToolResultMessage,
   createUserMessage,
@@ -99,7 +99,7 @@ describe('OpenAI Codex compaction request', () => {
       })
     })
 
-    const callId = CallId('call_1|fc_1')
+    const callId = ToolCallId('call_1|fc_1')
     const reasoningItem = {
       type: 'reasoning',
       id: 'rs_1',
@@ -138,7 +138,7 @@ describe('OpenAI Codex compaction request', () => {
       }),
       createUserMessage({
         content: [{ type: 'text', text: 'Summarize the conversation for compaction.' }],
-        source: { kind: 'plugin', plugin: 'compaction-basic' },
+        source: { kind: 'user' },
       }),
     ]
 
@@ -158,7 +158,7 @@ describe('OpenAI Codex compaction request', () => {
       sessionId: 'session-compaction' as never,
     })) assembler.push(chunk)
 
-    expect(assembler.message({ kind: 'model', provider: 'openai-codex', model: 'gpt-5.6-sol' }).content)
+    expect(assembler.message({ provider: 'openai-codex', model: 'gpt-5.6-sol' }).content)
       .toEqual([{ type: 'text', text: 'summary' }])
     if (request === undefined) throw new Error('Codex request was not captured')
     const captured = request as { url: string; init: RequestInit }

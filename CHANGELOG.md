@@ -4,6 +4,13 @@ All notable changes to this project are documented here.
 
 ## Unreleased
 
+## 0.2.0-beta.1 - 2026-10-15
+
+- Adapted to DeepSeek Harness `0.2.0-rc.2`: peer and dev dependencies moved to the `0.2.0-rc.2` / cordis `~4.0.4` / pi-ai `^0.87.1` / schemastery `~3.18.4` baseline.
+- Host half: `PiAiAdapter` now receives the required `auth` injection (credential store plus an ambient-free auth context) and the profile's new request-image limits and `modelErrors` fields; settings moved from `installSettingsSection` to volatile plugin configuration with `loader/volatile-update` re-reconciliation; message sources use a plugin-owned `openai-codex-plugin` kind.
+- Browser half: rewritten for the 0.2.x client — the account page registers as a `settings.plugins.tab` page, edits flow through `ctx.configForms`, the image tool views consume the framework-supplied `loadImage` and phase-based tool-call blocks, and the old `dsh-client-runtime` dependency is gone.
+- Added the `gpt-6.1-sol` (GPT-6.1 Sol) model to the OpenAI Codex catalog, mirroring the GPT-6 Sol family's context, output ceiling, thinking levels, and pricing.
+
 ## 0.1.0-beta.4 - 2026-08-18
 
 ### Fixed

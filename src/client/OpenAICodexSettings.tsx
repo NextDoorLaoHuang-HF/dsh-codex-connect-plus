@@ -1,8 +1,9 @@
-/** Plugin-owned OpenAI Codex account controls used inside Plugin configuration. */
+/* Modified from dsh-codex-connect by 0751 for dsh-codex-connect-plus; Copyright 2026 0751; Apache-2.0, see NOTICE. */
+/** Plugin-owned OpenAI Codex account page inside the Plugins settings section. */
 
 import { useCallback, useEffect, useRef, useState } from 'react'
 import type { CSSProperties } from 'react'
-import type { SettingsScope } from '@deepseek-ai/dsh-client-runtime/client'
+import type { ConfigForm, ConfigFormSnapshot } from '@deepseek-ai/dsh-client-ui-settings/client'
 import type { OpenAICodexUsage } from '../usage.ts'
 import type { OpenAICodexSettingsConfig } from '../settings-contract.ts'
 import {
@@ -12,6 +13,7 @@ import {
 } from '../auth-paths.ts'
 import type { OpenAICodexSettingsKey } from './locales.ts'
 import { OpenAICodexConfiguration } from './OpenAICodexConfiguration.tsx'
+import type { OpenAICodexPageInjected } from './index.tsx'
 
 const POLL_INTERVAL_MS = 1_000
 const USAGE_POLL_INTERVAL_MS = 60_000
@@ -27,26 +29,19 @@ interface LoginChallenge {
   url: string
 }
 
-/** Dependencies injected by the browser plugin entry. */
-export interface OpenAICodexSettingsInjected {
-  /** Localized page copy. */
-  t: (key: OpenAICodexSettingsKey, params?: Record<string, unknown>) => string
-  /** Host-owned optional capability settings. */
-  configScope: SettingsScope<OpenAICodexSettingsConfig>
-}
+/** Localized copy delivered by the framework locale seat. */
+export type OpenAICodexSettingsT = (key: OpenAICodexSettingsKey, params?: Record<string, unknown>) => string
 
-/** Props delivered by the settings slot renderer. */
-export type OpenAICodexSettingsProps = Partial<OpenAICodexSettingsInjected> & {
-  /** Omit the page heading and outer card chrome inside Plugin configuration. */
-  embedded?: boolean
+/** Props delivered by the Plugins-tab slot renderer. */
+export type OpenAICodexSettingsProps = Partial<OpenAICodexPageInjected> & {
+  /** Framework-synthesized translate of the settings.openai-codex namespace. */
+  t?: OpenAICodexSettingsT
 }
 
 const pageStyle: CSSProperties = { display: 'flex', flexDirection: 'column', gap: 18, maxWidth: 720 }
 const titleStyle: CSSProperties = { margin: 0, fontSize: 20, lineHeight: '28px', fontWeight: 600, color: 'var(--dsw-alias-label-primary)' }
 const bodyStyle: CSSProperties = { margin: 0, fontSize: 14, lineHeight: '22px', color: 'var(--dsw-alias-label-secondary)' }
 const cardStyle: CSSProperties = { display: 'flex', flexDirection: 'column', gap: 14, padding: '18px 20px', border: '1px solid var(--dsw-alias-border-l2)', borderRadius: 12, background: 'var(--dsw-alias-bg-module-platform)' }
-const embeddedPageStyle: CSSProperties = { ...pageStyle, gap: 0, maxWidth: 'none' }
-const embeddedCardStyle: CSSProperties = { ...cardStyle, padding: 0, border: 0, borderRadius: 0, background: 'transparent' }
 const rowStyle: CSSProperties = { display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 12 }
 const statusStyle: CSSProperties = { display: 'flex', alignItems: 'center', gap: 9, fontSize: 15, fontWeight: 500, color: 'var(--dsw-alias-label-primary)' }
 const buttonStyle: CSSProperties = { boxSizing: 'border-box', minHeight: 34, padding: '6px 14px', border: '1px solid var(--dsw-alias-border-l2)', borderRadius: 18, background: 'var(--dsw-alias-bg-layer-1)', color: 'var(--dsw-alias-label-primary)', font: 'inherit', fontSize: 14, cursor: 'pointer' }
@@ -67,7 +62,7 @@ function progressFillStyle(percent: number): CSSProperties {
   }
 }
 
-function windowLabel(seconds: number, t: OpenAICodexSettingsInjected['t']): string {
+function windowLabel(seconds: number, t: OpenAICodexSettingsT): string {
   if (seconds === 5 * 60 * 60) return t('fiveHourLimit')
   if (seconds === 7 * 24 * 60 * 60) return t('weeklyLimit')
   const hours = seconds / (60 * 60)
@@ -87,7 +82,7 @@ function QuotaBar({
   label: string
   percent: number
   detail?: string
-  t: OpenAICodexSettingsInjected['t']
+  t: OpenAICodexSettingsT
 }) {
   const display = formatPercent(percent)
   return (
@@ -115,7 +110,7 @@ function QuotaBar({
 function UsageLimits({ usage, quotaError, t }: {
   usage: OpenAICodexUsage
   quotaError?: string
-  t: OpenAICodexSettingsInjected['t']
+  t: OpenAICodexSettingsT
 }) {
   const hasData = usage.rateLimits.length > 0 || usage.credits !== undefined || usage.individualLimit !== undefined
   return (
@@ -188,7 +183,7 @@ async function jsonRequest<T>(path: string, method = 'GET', signal?: AbortSignal
 }
 
 /** OpenAI Codex account status and OAuth actions. */
-export function OpenAICodexSettings({ t, configScope, embedded = false }: OpenAICodexSettingsProps) {
+export function OpenAICodexSettings({ t, form }: OpenAICodexSettingsProps) {
   if (t === undefined) throw new Error('OpenAI Codex settings requires its translation function')
   const [status, setStatus] = useState<AccountStatus>({ status: 'loading' })
   const [busy, setBusy] = useState(false)
@@ -279,17 +274,12 @@ export function OpenAICodexSettings({ t, configScope, embedded = false }: OpenAI
         : t('signedOut')
 
   return (
-    <section
-      style={embedded ? embeddedPageStyle : pageStyle}
-      {...embedded ? { 'aria-label': t('title') } : { 'aria-labelledby': 'openai-codex-settings-title' }}
-    >
-      {embedded ? null : (
-        <div>
-          <h2 id="openai-codex-settings-title" style={titleStyle}>{t('title')}</h2>
-          <p style={{ ...bodyStyle, marginTop: 6 }}>{t('intro')}</p>
-        </div>
-      )}
-      <div style={embedded ? embeddedCardStyle : cardStyle}>
+    <section style={pageStyle} aria-labelledby="openai-codex-settings-title">
+      <div>
+        <h2 id="openai-codex-settings-title" style={titleStyle}>{t('title')}</h2>
+        <p style={{ ...bodyStyle, marginTop: 6 }}>{t('intro')}</p>
+      </div>
+      <div style={cardStyle}>
         <h3 style={quotaTitleStyle}>{t('accountHeading')}</h3>
         <div style={rowStyle}>
           <div style={statusStyle} role="status">
@@ -312,7 +302,7 @@ export function OpenAICodexSettings({ t, configScope, embedded = false }: OpenAI
           : null}
         <OpenAICodexConfiguration
           t={t}
-          {...configScope === undefined ? {} : { scope: configScope }}
+          {...form === undefined ? {} : { form }}
         />
       </div>
     </section>

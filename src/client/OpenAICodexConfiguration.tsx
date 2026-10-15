@@ -3,12 +3,12 @@
 
 import { useCallback, useEffect, useState, useSyncExternalStore } from 'react'
 import type { CSSProperties } from 'react'
-import type { SettingsScope } from '@deepseek-ai/dsh-client-runtime/client'
+import type { ConfigForm } from '@deepseek-ai/dsh-client-ui-settings/client'
 import type { OpenAICodexSettingsConfig } from '../settings-contract.ts'
 import type { OpenAICodexSettingsKey } from './locales.ts'
 
 export interface OpenAICodexConfigurationProps {
-  scope?: SettingsScope<OpenAICodexSettingsConfig>
+  form?: ConfigForm<OpenAICodexSettingsConfig>
   t: (key: OpenAICodexSettingsKey, params?: Record<string, unknown>) => string
 }
 
@@ -59,9 +59,9 @@ function sameConfig(
 }
 
 /** Edit the Host-owned llm-openai-codex settings section with Save/Discard staging. */
-export function OpenAICodexConfiguration({ scope, t }: OpenAICodexConfigurationProps) {
-  const subscribe = useCallback((listener: () => void) => scope?.subscribe(listener) ?? (() => undefined), [scope])
-  const getSnapshot = useCallback(() => scope?.getSnapshot() ?? UNAVAILABLE_SNAPSHOT, [scope])
+export function OpenAICodexConfiguration({ form, t }: OpenAICodexConfigurationProps) {
+  const subscribe = useCallback((listener: () => void) => form?.subscribe(listener) ?? (() => undefined), [form])
+  const getSnapshot = useCallback(() => form?.getSnapshot() ?? UNAVAILABLE_SNAPSHOT, [form])
   const snapshot = useSyncExternalStore(
     subscribe,
     getSnapshot,
@@ -86,7 +86,7 @@ export function OpenAICodexConfiguration({ scope, t }: OpenAICodexConfigurationP
   }
 
   const discard = (): void => {
-    setDraft(scope?.getSnapshot().value)
+    setDraft(form?.getSnapshot().value)
     setDirty(false)
     setFeedback('idle')
   }
@@ -102,26 +102,26 @@ export function OpenAICodexConfiguration({ scope, t }: OpenAICodexConfigurationP
   const valid = validRetries && validModel && validTokens
 
   const save = async (): Promise<void> => {
-    if (scope === undefined || draft === undefined || !snapshot.writable || !valid) return
+    if (form === undefined || draft === undefined || !snapshot.writable || !valid) return
     const desired = { ...draft, searchModel: draft.searchModel.trim() }
     setBusy(true)
     setFeedback('idle')
     try {
       for (const field of CONFIG_FIELDS) {
-        const accepted = scope.getSnapshot().value
+        const accepted = form.getSnapshot().value
         if (accepted?.[field] === desired[field]) continue
-        await scope.set(field, desired[field])
-        if (scope.getSnapshot().value?.[field] !== desired[field]) {
+        await form.set(field, desired[field])
+        if (form.getSnapshot().value?.[field] !== desired[field]) {
           throw new Error(`Host refused ${field}`)
         }
       }
-      const accepted = scope.getSnapshot().value
+      const accepted = form.getSnapshot().value
       if (!sameConfig(accepted, desired)) throw new Error('Host returned a different configuration')
       setDraft(accepted)
       setDirty(false)
       setFeedback('saved')
     } catch {
-      setDraft(scope.getSnapshot().value)
+      setDraft(form.getSnapshot().value)
       setDirty(false)
       setFeedback('error')
     } finally {

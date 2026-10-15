@@ -40,7 +40,7 @@
 
 ## 版本要求
 
-- **DeepSeek Harness `0.1.0-rc.7` 或更新版本。** 本版本适配了 rc.7 的 keyed-slot 设置卡 API。在更旧的 Harness 上，插件仍可安装（插件系统不强制 peer 范围），但“插件配置”卡片可能不显示；请先升级 Harness，或针对 `0.1.0-rc.5`/`rc.6` 时代的 Harness 继续使用 `0.1.0-beta.2`。
+- **DeepSeek Harness `0.2.0-rc.2` 或更新版本。** 本版本适配了 0.2.x 的浏览器插槽表（`settings.plugins.tab`）、ConfigForms 设置通道、volatile 插件配置以及 pi-ai `0.87` 的 Provider API。在 `0.1.0-rc.7` 时代的 Harness 上请改用 `0.1.0-beta.4`。
 - Node.js `^22.19.0 || >=24.0.0`。
 
 ## 安装
@@ -54,7 +54,7 @@ dsh plugin --profile web add dsh-codex-connect-plus@beta
 不可变 GitHub 备用安装方式：
 
 ```sh
-dsh plugin --profile web add 'github:stoneface10/dsh-codex-connect-plus#v0.1.0-beta.4'
+dsh plugin --profile web add 'github:stoneface10/dsh-codex-connect-plus#v0.2.0-beta.1'
 ```
 
 GitHub 预发布中也附带了对应的 `.tgz`。

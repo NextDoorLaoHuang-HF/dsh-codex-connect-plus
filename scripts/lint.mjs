@@ -4,7 +4,7 @@ const packageJson = JSON.parse(await readFile(new URL('../package.json', import.
 const failures = []
 
 if (packageJson.name !== 'dsh-codex-connect-plus') failures.push('package name must be dsh-codex-connect-plus')
-const releaseMatch = /^0\.1\.0-(alpha|beta)\.[1-9]\d*(?:\.\d+)?$/u.exec(packageJson.version)
+const releaseMatch = /^0\.(?:1|2)\.0-(alpha|beta)\.[1-9]\d*(?:\.\d+)?$/u.exec(packageJson.version)
 if (!releaseMatch) failures.push('package version must be a 0.1.0 alpha or beta release')
 const releaseChannel = releaseMatch?.[1]
 if (releaseChannel && packageJson.publishConfig?.tag !== releaseChannel) failures.push(`publishConfig.tag must be ${releaseChannel}`)
