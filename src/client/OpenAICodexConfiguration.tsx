@@ -4,6 +4,7 @@
 import { useCallback, useEffect, useState, useSyncExternalStore } from 'react'
 import type { CSSProperties } from 'react'
 import type { ConfigForm } from '@deepseek-ai/dsh-client-ui-settings/client'
+import { MAX_OPENAI_CODEX_MODEL_RETRIES } from '../settings-contract.ts'
 import type { OpenAICodexSettingsConfig } from '../settings-contract.ts'
 import type { OpenAICodexSettingsKey } from './locales.ts'
 
@@ -94,7 +95,7 @@ export function OpenAICodexConfiguration({ form, t }: OpenAICodexConfigurationPr
   const validRetries = draft !== undefined
     && Number.isInteger(draft.modelMaxRetries)
     && draft.modelMaxRetries >= 0
-    && draft.modelMaxRetries <= 2
+    && draft.modelMaxRetries <= MAX_OPENAI_CODEX_MODEL_RETRIES
   const validModel = draft !== undefined && draft.searchModel.trim().length > 0
   const validTokens = draft !== undefined
     && Number.isInteger(draft.searchMaxOutputTokens)
@@ -153,8 +154,9 @@ export function OpenAICodexConfiguration({ form, t }: OpenAICodexConfigurationPr
               onChange={event => { update('modelMaxRetries', Number(event.currentTarget.value)) }}
             >
               <option value={0}>{t('retryNone')}</option>
-              <option value={1}>{t('retryOnce')}</option>
-              <option value={2}>{t('retryTwice')}</option>
+              {Array.from({ length: MAX_OPENAI_CODEX_MODEL_RETRIES }, (_unused, index) => index + 1).map(count => (
+                <option key={count} value={count}>{t('retryCount', { count })}</option>
+              ))}
             </select>
             <span style={bodyStyle}>{t('modelMaxRetriesHelp')}</span>
           </label>

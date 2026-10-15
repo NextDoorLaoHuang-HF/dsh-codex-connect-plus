@@ -232,8 +232,12 @@ declare const DEFAULT_OPENAI_CODEX_SEARCH_CONTEXT_SIZE: OpenAICodexSearchContext
 declare const DEFAULT_OPENAI_CODEX_SEARCH_MAX_OUTPUT_TOKENS = 10000;
 /** Conservative default: do not silently replay a full subscription-backed model request. */
 declare const DEFAULT_OPENAI_CODEX_MODEL_MAX_RETRIES = 0;
-/** Upper bound exposed by this plugin for deliberate transient-error retries. */
-declare const MAX_OPENAI_CODEX_MODEL_RETRIES = 2;
+/**
+ * Upper bound exposed by this plugin for deliberate transient-error retries.
+ * Matches dsh-llm's own default retry ceiling; every retry still repeats the
+ * full failed model request against the subscription quota.
+ */
+declare const MAX_OPENAI_CODEX_MODEL_RETRIES = 5;
 /** Fully resolved user-editable section presented by Plugin configuration. */
 interface OpenAICodexSettingsConfig {
   /** Extra full model requests after a transient failure. */
