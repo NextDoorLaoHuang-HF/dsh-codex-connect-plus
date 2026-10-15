@@ -32,7 +32,12 @@ function payload(): unknown {
     rate_limit: {
       allowed: true,
       limit_reached: false,
-      primary_window: { used_percent: 13, limit_window_seconds: 604_800 },
+      primary_window: {
+        used_percent: 13,
+        limit_window_seconds: 604_800,
+        reset_after_seconds: 589_940,
+        reset_at: 1_792_649_636,
+      },
       secondary_window: { used_percent: 40.5, limit_window_seconds: 18_000 },
     },
     credits: { has_credits: true, unlimited: false, balance: '42.5' },
@@ -51,7 +56,7 @@ function payload(): unknown {
       rate_limit: {
         allowed: true,
         limit_reached: false,
-        primary_window: { used_percent: 0, limit_window_seconds: 604_800 },
+        primary_window: { used_percent: 0, limit_window_seconds: 604_800, reset_after_seconds: 600 },
       },
     }],
   }
@@ -72,21 +77,21 @@ async function authenticatedStore(): Promise<OpenAICodexCredentialStore> {
 }
 
 describe('OpenAI Codex usage', () => {
-  it('projects rolling percentages and exact provider-supported balances', () => {
+  it('projects rolling percentages, reset deadlines, and exact balances', () => {
     expect(parseOpenAICodexUsage(payload())).toEqual({
       rateLimits: [
         {
           id: 'codex',
           name: 'Codex',
           windows: [
-            { remainingPercent: 87, windowSeconds: 604_800 },
+            { remainingPercent: 87, windowSeconds: 604_800, resetAt: 1_792_649_636, resetAfterSeconds: 589_940 },
             { remainingPercent: 59.5, windowSeconds: 18_000 },
           ],
         },
         {
           id: 'codex_spark',
           name: 'Codex Spark',
-          windows: [{ remainingPercent: 100, windowSeconds: 604_800 }],
+          windows: [{ remainingPercent: 100, windowSeconds: 604_800, resetAfterSeconds: 600 }],
         },
       ],
       credits: { unlimited: false, balance: '42.5' },
@@ -105,6 +110,19 @@ describe('OpenAI Codex usage', () => {
         primary_window: { used_percent: 101, limit_window_seconds: 18_000 },
       },
     })).toThrow(/invalid used percentage/)
+  })
+
+  it('rejects reset timing that is not a non-negative whole second count', () => {
+    expect(() => parseOpenAICodexUsage({
+      rate_limit: {
+        primary_window: { used_percent: 20, limit_window_seconds: 18_000, reset_at: 'soon' },
+      },
+    })).toThrow(/invalid rate-limit reset time \(reset_at\)/)
+    expect(() => parseOpenAICodexUsage({
+      rate_limit: {
+        primary_window: { used_percent: 20, limit_window_seconds: 18_000, reset_after_seconds: -1 },
+      },
+    })).toThrow(/invalid rate-limit reset time \(reset_after_seconds\)/)
   })
 
   it('reads the fixed usage endpoint with refreshed plugin credentials', async () => {

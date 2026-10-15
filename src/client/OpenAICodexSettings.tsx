@@ -4,7 +4,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import type { CSSProperties } from 'react'
 import type { ConfigForm, ConfigFormSnapshot } from '@deepseek-ai/dsh-client-ui-settings/client'
-import type { OpenAICodexUsage } from '../usage.ts'
+import type { OpenAICodexRateLimitWindow, OpenAICodexUsage } from '../usage.ts'
 import type { OpenAICodexSettingsConfig } from '../settings-contract.ts'
 import {
   OPENAI_CODEX_AUTH_LOGIN_PATH,
@@ -17,6 +17,7 @@ import type { OpenAICodexPageInjected } from './index.tsx'
 
 const POLL_INTERVAL_MS = 1_000
 const USAGE_POLL_INTERVAL_MS = 60_000
+const RESET_TICK_INTERVAL_MS = 30_000
 
 type AccountStatus =
   | { status: 'loading' }
@@ -73,6 +74,37 @@ function formatPercent(percent: number): string {
   return new Intl.NumberFormat(undefined, { maximumFractionDigits: 1 }).format(percent)
 }
 
+/** Server-disclosed reset deadline in milliseconds, preferring the absolute epoch. */
+function resetDeadlineMs(window: OpenAICodexRateLimitWindow, now: number): number | undefined {
+  if (window.resetAt !== undefined) return window.resetAt * 1000
+  if (window.resetAfterSeconds !== undefined) return now + window.resetAfterSeconds * 1000
+  return undefined
+}
+
+function formatResetRelative(secondsUntil: number): string {
+  const relative = new Intl.RelativeTimeFormat(undefined, { numeric: 'auto' })
+  if (secondsUntil < 60) return relative.format(-secondsUntil, 'second')
+  if (secondsUntil < 60 * 60) return relative.format(-Math.round(secondsUntil / 60), 'minute')
+  if (secondsUntil < 24 * 60 * 60) return relative.format(-Math.round(secondsUntil / (60 * 60)), 'hour')
+  return relative.format(-Math.round(secondsUntil / (24 * 60 * 60)), 'day')
+}
+
+function formatResetAbsolute(deadline: number, now: number): string {
+  const sameDay = new Date(deadline).toDateString() === new Date(now).toDateString()
+  return new Intl.DateTimeFormat(undefined, sameDay
+    ? { hour: '2-digit', minute: '2-digit' }
+    : { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }).format(deadline)
+}
+
+function windowResetDetail(window: OpenAICodexRateLimitWindow, now: number, t: OpenAICodexSettingsT): string | undefined {
+  const deadline = resetDeadlineMs(window, now)
+  if (deadline === undefined) return undefined
+  return t('windowResets', {
+    time: formatResetAbsolute(deadline, now),
+    relative: formatResetRelative(Math.max(0, Math.round((deadline - now) / 1000))),
+  })
+}
+
 function QuotaBar({
   label,
   percent,
@@ -112,6 +144,13 @@ function UsageLimits({ usage, quotaError, t }: {
   quotaError?: string
   t: OpenAICodexSettingsT
 }) {
+  const [now, setNow] = useState(() => Date.now())
+  useEffect(() => {
+    // The usage snapshot refreshes every minute; tick halfway so the reset
+    // countdown never goes stale by more than half a minute.
+    const timer = window.setInterval(() => { setNow(Date.now()) }, RESET_TICK_INTERVAL_MS)
+    return () => { window.clearInterval(timer) }
+  }, [])
   const hasData = usage.rateLimits.length > 0 || usage.credits !== undefined || usage.individualLimit !== undefined
   return (
     <div style={quotaListStyle}>
@@ -119,14 +158,18 @@ function UsageLimits({ usage, quotaError, t }: {
       {usage.rateLimits.map(limit => (
         <div key={limit.id} style={quotaGroupStyle}>
           <h4 style={quotaTitleStyle}>{limit.name ?? limit.id}</h4>
-          {limit.windows.map(window => (
-            <QuotaBar
-              key={window.windowSeconds}
-              label={windowLabel(window.windowSeconds, t)}
-              percent={window.remainingPercent}
-              t={t}
-            />
-          ))}
+          {limit.windows.map(window => {
+            const detail = windowResetDetail(window, now, t)
+            return (
+              <QuotaBar
+                key={window.windowSeconds}
+                label={windowLabel(window.windowSeconds, t)}
+                percent={window.remainingPercent}
+                {...detail === undefined ? {} : { detail }}
+                t={t}
+              />
+            )
+          })}
         </div>
       ))}
       {usage.individualLimit === undefined ? null : (

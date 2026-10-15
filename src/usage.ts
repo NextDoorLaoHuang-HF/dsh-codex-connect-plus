@@ -17,6 +17,10 @@ export interface OpenAICodexRateLimitWindow {
   readonly remainingPercent: number
   /** Server-declared rolling-window length in seconds. */
   readonly windowSeconds: number
+  /** Absolute server epoch in seconds when this window resets, when disclosed. */
+  readonly resetAt?: number
+  /** Seconds from the response until this window resets, when disclosed. */
+  readonly resetAfterSeconds?: number
 }
 
 /** One separately metered Codex quota bucket. */
@@ -63,6 +67,14 @@ function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null && !Array.isArray(value)
 }
 
+function parseResetSeconds(value: unknown, field: string): number | undefined {
+  if (value === undefined || value === null) return undefined
+  if (typeof value !== 'number' || !Number.isFinite(value) || !Number.isInteger(value) || value < 0) {
+    throw new Error(`OpenAI Codex returned an invalid rate-limit reset time (${field})`)
+  }
+  return value
+}
+
 function parseWindow(value: unknown): OpenAICodexRateLimitWindow | undefined {
   if (value === undefined || value === null) return undefined
   if (!isRecord(value)) throw new Error('OpenAI Codex returned a malformed rate-limit window')
@@ -74,7 +86,14 @@ function parseWindow(value: unknown): OpenAICodexRateLimitWindow | undefined {
   if (typeof windowSeconds !== 'number' || !Number.isInteger(windowSeconds) || windowSeconds <= 0) {
     throw new Error('OpenAI Codex returned an invalid rate-limit window duration')
   }
-  return { remainingPercent: 100 - usedPercent, windowSeconds }
+  const resetAt = parseResetSeconds(value['reset_at'], 'reset_at')
+  const resetAfterSeconds = parseResetSeconds(value['reset_after_seconds'], 'reset_after_seconds')
+  return {
+    remainingPercent: 100 - usedPercent,
+    windowSeconds,
+    ...resetAt === undefined ? {} : { resetAt },
+    ...resetAfterSeconds === undefined ? {} : { resetAfterSeconds },
+  }
 }
 
 function parseLimit(id: string, name: string | undefined, value: unknown): OpenAICodexRateLimit | undefined {

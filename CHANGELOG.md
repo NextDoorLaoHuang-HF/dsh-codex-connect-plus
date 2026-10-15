@@ -4,6 +4,12 @@ All notable changes to this project are documented here.
 
 ## Unreleased
 
+## 0.2.0-beta.2 - 2026-10-15
+
+### Added
+
+- The account page now shows when each Codex rate-limit window resets: every 5-hour and weekly quota bar carries a localized reset line (absolute local time plus a live relative countdown, e.g. `19:14 重置（56 分钟后）`), built from the `reset_at` / `reset_after_seconds` fields the ChatGPT usage endpoint already returned but the parser previously discarded. The relative label refreshes every 30 seconds without extra requests.
+
 ## 0.2.0-beta.1 - 2026-10-15
 
 - Adapted to DeepSeek Harness `0.2.0-rc.2`: peer and dev dependencies moved to the `0.2.0-rc.2` / cordis `~4.0.4` / pi-ai `^0.87.1` / schemastery `~3.18.4` baseline.

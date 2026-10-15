@@ -128,6 +128,8 @@ describe('OpenAI Codex Plugin configuration card', () => {
   })
 
   it('renders signed-in quota semantics and signs out', async () => {
+    const now = Date.now()
+    const resetAtMs = now + 57 * 60 * 1000
     const fetchMock = vi.fn(async (input: string | URL | Request): Promise<Response> => {
       const path = requestPath(input)
       if (path === OPENAI_CODEX_AUTH_STATUS_PATH) {
@@ -137,7 +139,10 @@ describe('OpenAI Codex Plugin configuration card', () => {
             rateLimits: [{
               id: 'codex',
               name: 'Codex',
-              windows: [{ remainingPercent: 72.5, windowSeconds: 18_000 }],
+              windows: [
+                { remainingPercent: 72.5, windowSeconds: 18_000, resetAt: Math.floor(resetAtMs / 1000) },
+                { remainingPercent: 83, windowSeconds: 604_800 },
+              ],
             }],
           },
         })
@@ -151,6 +156,14 @@ describe('OpenAI Codex Plugin configuration card', () => {
     const progress = await screen.findByRole('progressbar', { name: en.fiveHourLimit })
     expect(progress.getAttribute('aria-valuenow')).toBe('72.5')
     expect(progress.getAttribute('aria-valuetext')).toBe('72.5% remaining')
+    expect(screen.getByRole('progressbar', { name: en.weeklyLimit }).getAttribute('aria-valuenow')).toBe('83')
+
+    const expectedRelative = new Intl.RelativeTimeFormat(undefined, { numeric: 'auto' }).format(-57, 'minute')
+    const sameDay = new Date(resetAtMs).toDateString() === new Date(now).toDateString()
+    const expectedTime = new Intl.DateTimeFormat(undefined, sameDay
+      ? { hour: '2-digit', minute: '2-digit' }
+      : { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }).format(resetAtMs)
+    expect(screen.getByText(t('windowResets', { time: expectedTime, relative: expectedRelative }))).toBeTruthy()
 
     fireEvent.click(screen.getByRole('button', { name: en.logout }))
     expect(await screen.findByText(en.signedOut)).toBeTruthy()

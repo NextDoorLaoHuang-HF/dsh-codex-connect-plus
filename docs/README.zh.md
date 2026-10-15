@@ -19,6 +19,7 @@
 - **`gpt-image-2` 文生图与图片编辑**：可从提示词生成图片，也可编辑 1–8 张本地参考图；结果在聊天内预览并保存到本地。
 - **无需 OpenAI Platform API Key 或按量 API 计费配置**：授权来自用户主动登录的 ChatGPT/Codex OAuth 会话。
 - **默认节省订阅额度**：模型自动重试默认为 `0`，图片请求不会静默重试。
+- **额度重置时间**：账户页显示每个 Codex 限额窗口（5 小时 / 每周）的重置时间与实时倒计时。
 
 <p align="center">
   <img src="assets/demo-codex-image-and-models.png" alt="DeepSeek Harness 中选择 Codex 模型并使用 gpt-image-2 文生图的真实界面" width="920">
@@ -54,7 +55,7 @@ dsh plugin --profile web add dsh-codex-connect-plus@beta
 不可变 GitHub 备用安装方式：
 
 ```sh
-dsh plugin --profile web add 'github:stoneface10/dsh-codex-connect-plus#v0.2.0-beta.1'
+dsh plugin --profile web add 'github:stoneface10/dsh-codex-connect-plus#v0.2.0-beta.2'
 ```
 
 GitHub 预发布中也附带了对应的 `.tgz`。

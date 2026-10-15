@@ -19,6 +19,7 @@ Sign in once with ChatGPT OAuth. Codex model requests use the signed-in account'
 - **`gpt-image-2` generation and editing** — create images from prompts or edit 1–8 local references, with inline previews and local output files.
 - **No OpenAI Platform API key or pay-as-you-go API billing setup** — authorization comes from your user-approved ChatGPT/Codex OAuth session.
 - **Quota-conscious defaults** — automatic model retries default to `0`, and image requests are never silently retried.
+- **Quota reset times** — the account page shows when each Codex rate-limit window (5-hour and weekly) resets, with an absolute local time and a live countdown.
 
 <p align="center">
   <img src="docs/assets/demo-codex-image-and-models.png" alt="Real DeepSeek Harness UI showing Codex model selection and gpt-image-2 image generation" width="920">
@@ -54,7 +55,7 @@ dsh plugin --profile web add dsh-codex-connect-plus@beta
 Immutable GitHub fallback:
 
 ```sh
-dsh plugin --profile web add 'github:stoneface10/dsh-codex-connect-plus#v0.2.0-beta.1'
+dsh plugin --profile web add 'github:stoneface10/dsh-codex-connect-plus#v0.2.0-beta.2'
 ```
 
 A matching `.tgz` is also attached to the GitHub prerelease.

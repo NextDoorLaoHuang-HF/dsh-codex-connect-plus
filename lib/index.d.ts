@@ -163,6 +163,10 @@ interface OpenAICodexRateLimitWindow {
   readonly remainingPercent: number;
   /** Server-declared rolling-window length in seconds. */
   readonly windowSeconds: number;
+  /** Absolute server epoch in seconds when this window resets, when disclosed. */
+  readonly resetAt?: number;
+  /** Seconds from the response until this window resets, when disclosed. */
+  readonly resetAfterSeconds?: number;
 }
 /** One separately metered Codex quota bucket. */
 interface OpenAICodexRateLimit {
