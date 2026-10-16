@@ -226,6 +226,12 @@ declare const OPENAI_CODEX_SETTINGS_NAMESPACE = "llm-openai-codex";
 type OpenAICodexSearchMode = 'cached' | 'indexed' | 'live';
 /** Search-context sizes accepted by the Codex standalone search endpoint. */
 type OpenAICodexSearchContextSize = 'low' | 'medium' | 'high';
+/**
+ * Reasoning efforts this plugin may inject into requests that carry no
+ * explicit effort (context compaction, session-title generation).
+ * Empty string keeps the model catalog's implicit default.
+ */
+type OpenAICodexImplicitReasoningEffort = '' | 'minimal' | 'low' | 'medium' | 'high' | 'xhigh' | 'max';
 /** Default model used by the standalone search endpoint. */
 declare const DEFAULT_OPENAI_CODEX_SEARCH_MODEL = "gpt-5.6-sol";
 /** Default search mode, matching the official local Codex client. */
@@ -242,10 +248,14 @@ declare const DEFAULT_OPENAI_CODEX_MODEL_MAX_RETRIES = 0;
  * full failed model request against the subscription quota.
  */
 declare const MAX_OPENAI_CODEX_MODEL_RETRIES = 5;
+/** Default implicit reasoning effort: keep the model catalog default. */
+declare const DEFAULT_OPENAI_CODEX_IMPLICIT_REASONING_EFFORT: OpenAICodexImplicitReasoningEffort;
 /** Fully resolved user-editable section presented by Plugin configuration. */
 interface OpenAICodexSettingsConfig {
   /** Extra full model requests after a transient failure. */
   modelMaxRetries: number;
+  /** Effort injected into effort-less requests such as compaction. */
+  implicitReasoningEffort: OpenAICodexImplicitReasoningEffort;
   enableSearch: boolean;
   enableImageTool: boolean;
   enableImageGeneration: boolean;
@@ -399,6 +409,8 @@ declare const OPENAI_CODEX_SETTINGS_NS = "llm-openai-codex";
 interface Config {
   /** Extra full model requests after a transient failure (default 0, maximum 2). */
   modelMaxRetries?: number;
+  /** Effort injected into effort-less requests such as compaction (default ''). */
+  implicitReasoningEffort?: string;
   /** Register the optional standalone Codex search provider. */
   enableSearch?: boolean;
   /** Register the optional image-loading tool. */
@@ -421,6 +433,7 @@ interface Config {
  */
 interface VolatileConfig {
   modelMaxRetries: VolatileRef<number>;
+  implicitReasoningEffort: VolatileRef<string>;
   enableSearch: VolatileRef<boolean>;
   enableImageTool: VolatileRef<boolean>;
   enableImageGeneration: VolatileRef<boolean>;
@@ -435,6 +448,7 @@ interface VolatileRef<T> {
 }
 declare const Config: z<Schemastery.ObjectS<NoInfer<{
   modelMaxRetries: z<number, number, "volatile-defined">;
+  implicitReasoningEffort: z<"" | "minimal" | "low" | "medium" | "high" | "xhigh" | "max", "" | "minimal" | "low" | "medium" | "high" | "xhigh" | "max", "volatile-defined">;
   enableSearch: z<boolean, boolean, "volatile-defined">;
   enableImageTool: z<boolean, boolean, "volatile-defined">;
   enableImageGeneration: z<boolean, boolean, "volatile-defined">;
@@ -444,6 +458,7 @@ declare const Config: z<Schemastery.ObjectS<NoInfer<{
   searchMaxOutputTokens: z<number, number, "volatile-defined">;
 }>>, Schemastery.ObjectT<NoInfer<{
   modelMaxRetries: z<number, number, "volatile-defined">;
+  implicitReasoningEffort: z<"" | "minimal" | "low" | "medium" | "high" | "xhigh" | "max", "" | "minimal" | "low" | "medium" | "high" | "xhigh" | "max", "volatile-defined">;
   enableSearch: z<boolean, boolean, "volatile-defined">;
   enableImageTool: z<boolean, boolean, "volatile-defined">;
   enableImageGeneration: z<boolean, boolean, "volatile-defined">;
@@ -461,4 +476,4 @@ declare const Config: z<Schemastery.ObjectS<NoInfer<{
  */
 declare function apply(ctx: Context, config: VolatileConfig): void;
 //#endregion
-export { CODEX_IMAGE_EDIT_TOOL_NAME, CODEX_IMAGE_EDIT_URL, CODEX_IMAGE_GENERATE_TOOL_NAME, CODEX_IMAGE_GENERATE_URL, CODEX_IMAGE_MODEL, Config, DEFAULT_OPENAI_CODEX_MODEL_MAX_RETRIES, DEFAULT_OPENAI_CODEX_SEARCH_CONTEXT_SIZE, DEFAULT_OPENAI_CODEX_SEARCH_MAX_OUTPUT_TOKENS, DEFAULT_OPENAI_CODEX_SEARCH_MODE, DEFAULT_OPENAI_CODEX_SEARCH_MODEL, DEFAULT_OPENAI_CODEX_SETTINGS, MAX_OPENAI_CODEX_MODEL_RETRIES, OPENAI_CODEX_AUTH_FILENAME, OPENAI_CODEX_BASE_URL, OPENAI_CODEX_PROVIDER, OPENAI_CODEX_SEARCH_MODEL_REQUEST_EVENT, OPENAI_CODEX_SEARCH_PROVIDER, OPENAI_CODEX_SEARCH_URL, OPENAI_CODEX_SETTINGS_NAMESPACE, OPENAI_CODEX_SETTINGS_NS, OPENAI_CODEX_USAGE_URL, type OpenAICodexAuthStatus, OpenAICodexCredentialStore, type OpenAICodexCredits, type OpenAICodexDiagnosticOptions, type OpenAICodexDiagnosticReport, type OpenAICodexIndividualLimit, type OpenAICodexRateLimit, type OpenAICodexRateLimitWindow, type OpenAICodexSearchContextSize, type OpenAICodexSearchMode, OpenAICodexSearchProvider, type OpenAICodexSearchProviderOptions, type OpenAICodexSearchRequestRecord, type OpenAICodexSettingsConfig, type OpenAICodexUsage, VIEW_IMAGE_TOOL_NAME, VolatileConfig, apply, assertNoOpenAICodexProviderConflict, createCodexImageRequest, decodeCodexImageResponse, decodeOpenAICodexSettings, detectCodexImageType, diagnoseOpenAICodex, inject, installOpenAICodexSearchEvent, loginOpenAICodex, logoutOpenAICodex, mapOpenAICodexSearchResponse, name, openAICodexAuthPath, openAICodexAuthStatus, openAICodexConflictMessage, parseOpenAICodexUsage, readOpenAICodexRateLimits, recordOpenAICodexSearchRequest, resolveCodexImageSize, resolveOpenAICodexSettings, safeCodexImageHttpError };
+export { CODEX_IMAGE_EDIT_TOOL_NAME, CODEX_IMAGE_EDIT_URL, CODEX_IMAGE_GENERATE_TOOL_NAME, CODEX_IMAGE_GENERATE_URL, CODEX_IMAGE_MODEL, Config, DEFAULT_OPENAI_CODEX_IMPLICIT_REASONING_EFFORT, DEFAULT_OPENAI_CODEX_MODEL_MAX_RETRIES, DEFAULT_OPENAI_CODEX_SEARCH_CONTEXT_SIZE, DEFAULT_OPENAI_CODEX_SEARCH_MAX_OUTPUT_TOKENS, DEFAULT_OPENAI_CODEX_SEARCH_MODE, DEFAULT_OPENAI_CODEX_SEARCH_MODEL, DEFAULT_OPENAI_CODEX_SETTINGS, MAX_OPENAI_CODEX_MODEL_RETRIES, OPENAI_CODEX_AUTH_FILENAME, OPENAI_CODEX_BASE_URL, OPENAI_CODEX_PROVIDER, OPENAI_CODEX_SEARCH_MODEL_REQUEST_EVENT, OPENAI_CODEX_SEARCH_PROVIDER, OPENAI_CODEX_SEARCH_URL, OPENAI_CODEX_SETTINGS_NAMESPACE, OPENAI_CODEX_SETTINGS_NS, OPENAI_CODEX_USAGE_URL, type OpenAICodexAuthStatus, OpenAICodexCredentialStore, type OpenAICodexCredits, type OpenAICodexDiagnosticOptions, type OpenAICodexDiagnosticReport, type OpenAICodexIndividualLimit, type OpenAICodexRateLimit, type OpenAICodexRateLimitWindow, type OpenAICodexSearchContextSize, type OpenAICodexSearchMode, OpenAICodexSearchProvider, type OpenAICodexSearchProviderOptions, type OpenAICodexSearchRequestRecord, type OpenAICodexSettingsConfig, type OpenAICodexUsage, VIEW_IMAGE_TOOL_NAME, VolatileConfig, apply, assertNoOpenAICodexProviderConflict, createCodexImageRequest, decodeCodexImageResponse, decodeOpenAICodexSettings, detectCodexImageType, diagnoseOpenAICodex, inject, installOpenAICodexSearchEvent, loginOpenAICodex, logoutOpenAICodex, mapOpenAICodexSearchResponse, name, openAICodexAuthPath, openAICodexAuthStatus, openAICodexConflictMessage, parseOpenAICodexUsage, readOpenAICodexRateLimits, recordOpenAICodexSearchRequest, resolveCodexImageSize, resolveOpenAICodexSettings, safeCodexImageHttpError };

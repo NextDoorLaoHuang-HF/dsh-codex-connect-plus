@@ -33,6 +33,7 @@ function volatileConfig(): { config: OpenAICodex.VolatileConfig; live: OpenAICod
     live,
     config: {
       modelMaxRetries: ref('modelMaxRetries'),
+      implicitReasoningEffort: ref('implicitReasoningEffort'),
       enableSearch: ref('enableSearch'),
       enableImageTool: ref('enableImageTool'),
       enableImageGeneration: ref('enableImageGeneration'),

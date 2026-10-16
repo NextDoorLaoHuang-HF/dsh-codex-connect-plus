@@ -1,4 +1,5 @@
 import { describe, expect, it, vi } from 'vitest'
+import { readFileSync } from 'node:fs'
 import type { OpenAICodexAuthRuntime } from '../src/auth-runtime.ts'
 import {
   CODEX_IMAGE_GENERATE_URL,
@@ -11,6 +12,8 @@ import {
 } from '../src/images/protocol.ts'
 
 const png = Uint8Array.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 0, 0, 0, 0])
+const userAgentVersion = (): string =>
+  JSON.parse(readFileSync(new URL('../package.json', import.meta.url), 'utf8'))['version'] as string
 const auth = {
   authorizedAccount: vi.fn(async () => ({ accessToken: 'secret-access-token', accountId: 'acct-123' })),
 } as unknown as OpenAICodexAuthRuntime
@@ -55,7 +58,7 @@ describe('Codex Images protocol', () => {
       expect(headers.get('authorization')).toBe('Bearer secret-access-token')
       expect(headers.get('chatgpt-account-id')).toBe('acct-123')
       expect(headers.get('content-type')).toBe('application/json')
-      expect(headers.get('user-agent')).toBe('dsh-codex-connect-plus/0.2.0-beta.3')
+      expect(headers.get('user-agent')).toBe(`dsh-codex-connect-plus/${userAgentVersion()}`)
       expect(String(init?.body)).not.toContain('refresh')
       return new Response(JSON.stringify({ data: [{ b64_json: Buffer.from(png).toString('base64') }] }), {
         status: 200,

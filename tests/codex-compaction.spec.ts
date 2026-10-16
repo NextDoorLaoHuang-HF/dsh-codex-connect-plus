@@ -247,4 +247,56 @@ describe('OpenAI Codex compaction request', () => {
     expect(body).toMatchObject({ model: 'gpt-6.1-sol' })
     expect((body as { reasoning?: { effort?: string } }).reasoning).toEqual({ effort: 'low' })
   })
+
+  it('applies the configured implicit reasoning effort to effort-less compaction requests', async () => {
+    root = await mkdtemp(join(tmpdir(), 'dsh-openai-codex-compaction-effort-'))
+    vi.stubEnv('DSH_HOME', root)
+    const store = new OpenAICodex.OpenAICodexCredentialStore()
+    await store.modify(OpenAICodex.OPENAI_CODEX_PROVIDER, () => Promise.resolve({
+      type: 'oauth',
+      access: accessToken('account-effort'),
+      refresh: 'refresh-token',
+      expires: Date.now() + 3_600_000,
+      accountId: 'account-effort',
+    }))
+
+    let request: { url: string; init: RequestInit } | undefined
+    vi.stubGlobal('fetch', async (input: string | URL | Request, init?: RequestInit) => {
+      if (init === undefined) throw new Error('expected request init')
+      request = { url: String(input), init }
+      return new Response(responseEvents(), {
+        status: 200,
+        headers: { 'content-type': 'text/event-stream' },
+      })
+    })
+
+    const ctx = new Context()
+    context = ctx
+    await ctx.plugin(LlmRuntime)
+    await ctx.plugin(WebRuntime)
+    await ctx.plugin(OpenAICodex, { implicitReasoningEffort: 'medium' })
+    const assembler = new BlockAssembler()
+    for await (const chunk of ctx.llm.stream({
+      provider: 'openai-codex',
+      model: 'gpt-6.1-sol',
+      purpose: 'compaction',
+      system: 'Preserve decisions and unresolved work.',
+      messages: [
+        createUserMessage({
+          content: [{ type: 'text', text: 'Summarize the conversation for compaction.' }],
+          source: { kind: 'user' },
+        }),
+      ],
+      sessionId: 'session-compaction-effort' as never,
+    })) assembler.push(chunk)
+
+    expect(assembler.message({ provider: 'openai-codex', model: 'gpt-6.1-sol' }).content)
+      .toEqual([{ type: 'text', text: 'summary' }])
+    if (request === undefined) throw new Error('Codex request was not captured')
+    const captured = request as { url: string; init: RequestInit }
+    const body = requestJson(captured.init)
+    // The configured effort must override the catalog's implicit fallback
+    // for effort-less requests such as compaction.
+    expect((body as { reasoning?: { effort?: string } }).reasoning).toMatchObject({ effort: 'medium' })
+  })
 })

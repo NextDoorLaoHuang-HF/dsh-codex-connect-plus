@@ -42,6 +42,7 @@ const UNAVAILABLE_SNAPSHOT = {
 
 const CONFIG_FIELDS = [
   'modelMaxRetries',
+  'implicitReasoningEffort',
   'enableSearch',
   'enableImageTool',
   'enableImageGeneration',
@@ -159,6 +160,23 @@ export function OpenAICodexConfiguration({ form, t }: OpenAICodexConfigurationPr
               ))}
             </select>
             <span style={bodyStyle}>{t('modelMaxRetriesHelp')}</span>
+          </label>
+          <label style={formFieldStyle}>
+            <span style={labelStyle}>{t('implicitReasoningEffort')}</span>
+            <select
+              style={controlStyle}
+              value={draft.implicitReasoningEffort}
+              onChange={event => { update('implicitReasoningEffort', event.currentTarget.value as OpenAICodexSettingsConfig['implicitReasoningEffort']) }}
+            >
+              <option value="">{t('effortAutomatic')}</option>
+              <option value="minimal">{t('effortMinimal')}</option>
+              <option value="low">{t('effortLow')}</option>
+              <option value="medium">{t('effortMedium')}</option>
+              <option value="high">{t('effortHigh')}</option>
+              <option value="xhigh">{t('effortXhigh')}</option>
+              <option value="max">{t('effortMax')}</option>
+            </select>
+            <span style={bodyStyle}>{t('implicitReasoningEffortHelp')}</span>
           </label>
           <label style={toggleRowStyle}>
             <input

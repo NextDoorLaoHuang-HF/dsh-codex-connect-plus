@@ -61,12 +61,20 @@ const CODEX_AUTH_CONTEXT: AuthContext = {
  * public pi-ai adapter owns Harness message conversion, image attachment
  * resolution, streaming, reasoning metadata, and compaction behavior; this
  * plugin supplies its provider-native OAuth token for each request.
+ *
+ * The optional implicit-effort resolver covers one Codex-specific gap: core
+ * requests such as context compaction carry no explicit reasoning effort, so
+ * pi-ai falls back to the model catalog's implicit level. A configured value
+ * is injected into exactly those effort-less requests; requests that already
+ * carry an effort (normal agent traffic) are never rewritten, and a model that
+ * rejects the configured effort keeps its catalog default instead of failing.
  */
 export function createOpenAICodexAdapter(
   auth: OpenAICodexAuthRuntime,
   credentials: OpenAICodexCredentialStore,
   resolveAttachments: () => AttachmentStore | undefined,
   resolveModelMaxRetries: () => number = () => 0,
+  resolveImplicitReasoningEffort: () => string = () => '',
 ): PiAiAdapter {
   const provider = auth.provider
   let cachedMaxRetries: number | undefined
@@ -92,13 +100,80 @@ export function createOpenAICodexAdapter(
     }]])
     return cachedProfiles
   }
-  return new PiAiAdapter({
-    profiles,
-    auth: {
-      credentials,
-      authContext: CODEX_AUTH_CONTEXT,
+  return new ImplicitEffortPiAiAdapter(
+    {
+      profiles,
+      auth: {
+        credentials,
+        authContext: CODEX_AUTH_CONTEXT,
+      },
+      resolveApiKey: async () => auth.accessToken(),
+      resolveAttachments,
     },
-    resolveApiKey: async () => auth.accessToken(),
-    resolveAttachments,
-  })
+    resolveImplicitReasoningEffort,
+  )
+}
+
+type PiAiStreamOptions = Parameters<PiAiAdapter['stream']>[0]
+type PiAiStreamResult = ReturnType<PiAiAdapter['stream']>
+type PiAiPreparedCall = Awaited<ReturnType<PiAiAdapter['prepareCall']>>
+
+/** pi-ai adapter that adds a configurable effort to effort-less requests. */
+class ImplicitEffortPiAiAdapter extends PiAiAdapter {
+  private readonly resolveImplicitReasoningEffort: () => string
+
+  constructor(options: ConstructorParameters<typeof PiAiAdapter>[0], resolveImplicitReasoningEffort: () => string) {
+    super(options)
+    this.resolveImplicitReasoningEffort = resolveImplicitReasoningEffort
+  }
+
+  /** The llm service dispatches through this frozen-snapshot seam. */
+  override async prepareCall(provider: string, model: string, signal?: AbortSignal): Promise<PiAiPreparedCall> {
+    const prepared = await super.prepareCall(provider, model, signal)
+    return {
+      ...prepared,
+      stream: options => this.injectImplicitEffort(options, prepared.stream),
+    }
+  }
+
+  override stream(options: PiAiStreamOptions): PiAiStreamResult {
+    return this.injectImplicitEffort(options, candidate => super.stream(candidate))
+  }
+
+  private injectImplicitEffort(
+    options: PiAiStreamOptions,
+    dispatch: (candidate: PiAiStreamOptions) => PiAiStreamResult,
+  ): PiAiStreamResult {
+    const effort = this.resolveImplicitReasoningEffort().trim()
+    if (effort.length === 0 || options.reasoningEffort !== undefined) return dispatch(options)
+    const injected = dispatch({ ...options, reasoningEffort: effort } as PiAiStreamOptions)
+    const fallback = () => dispatch(options)
+    return withEffortFallback(injected, fallback)
+  }
+}
+
+/**
+ * Drain the injected attempt; when the model rejects the configured effort
+ * with pi-ai's pre-flight `UNSUPPORTED_REASONING_EFFORT` (raised before any
+ * network request), retry once with the untouched options so the catalog's
+ * implicit default still applies.
+ */
+async function* withEffortFallback(
+  injected: PiAiStreamResult,
+  fallback: () => PiAiStreamResult,
+): PiAiStreamResult {
+  let delivered = false
+  const iterator = injected[Symbol.asyncIterator]()
+  try {
+    while (true) {
+      const step = await iterator.next()
+      if (step.done) return undefined
+      delivered = true
+      yield step.value
+    }
+  } catch (error) {
+    const code = (error as { code?: unknown } | null)?.code
+    if (delivered || code !== 'UNSUPPORTED_REASONING_EFFORT') throw error
+  }
+  yield* fallback()
 }

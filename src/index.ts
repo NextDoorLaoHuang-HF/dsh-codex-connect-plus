@@ -71,6 +71,7 @@ import {
 import type { OpenAICodexSearchContextSize, OpenAICodexSearchMode } from './search.ts'
 import { OpenAICodexCredentialStore, OPENAI_CODEX_PROVIDER } from './store.ts'
 import {
+  DEFAULT_OPENAI_CODEX_IMPLICIT_REASONING_EFFORT,
   MAX_OPENAI_CODEX_MODEL_RETRIES,
   OPENAI_CODEX_SETTINGS_NAMESPACE,
   resolveOpenAICodexSettings,
@@ -79,6 +80,7 @@ import type { OpenAICodexSettingsConfig } from './settings-contract.ts'
 
 export {
   decodeOpenAICodexSettings,
+  DEFAULT_OPENAI_CODEX_IMPLICIT_REASONING_EFFORT,
   DEFAULT_OPENAI_CODEX_MODEL_MAX_RETRIES,
   DEFAULT_OPENAI_CODEX_SETTINGS,
   MAX_OPENAI_CODEX_MODEL_RETRIES,
@@ -126,6 +128,8 @@ export const OPENAI_CODEX_SETTINGS_NS = OPENAI_CODEX_SETTINGS_NAMESPACE
 export interface Config {
   /** Extra full model requests after a transient failure (default 0, maximum 2). */
   modelMaxRetries?: number
+  /** Effort injected into effort-less requests such as compaction (default ''). */
+  implicitReasoningEffort?: string
   /** Register the optional standalone Codex search provider. */
   enableSearch?: boolean
   /** Register the optional image-loading tool. */
@@ -149,6 +153,7 @@ export interface Config {
  */
 export interface VolatileConfig {
   modelMaxRetries: VolatileRef<number>
+  implicitReasoningEffort: VolatileRef<string>
   enableSearch: VolatileRef<boolean>
   enableImageTool: VolatileRef<boolean>
   enableImageGeneration: VolatileRef<boolean>
@@ -189,6 +194,9 @@ function deepEqualJson(a: unknown, b: unknown): boolean {
 
 export const Config = z.object({
   modelMaxRetries: z.number().step(1).min(0).max(MAX_OPENAI_CODEX_MODEL_RETRIES).default(0).volatile(),
+  implicitReasoningEffort: z.union(
+    ['', 'minimal', 'low', 'medium', 'high', 'xhigh', 'max'] as const,
+  ).default(DEFAULT_OPENAI_CODEX_IMPLICIT_REASONING_EFFORT).volatile(),
   enableSearch: z.boolean().default(false).volatile(),
   enableImageTool: z.boolean().default(false).volatile(),
   enableImageGeneration: z.boolean().default(true).volatile(),
@@ -208,6 +216,7 @@ export const Config = z.object({
 export function apply(ctx: Context, config: VolatileConfig): void {
   const current = (): OpenAICodexSettingsConfig => resolveOpenAICodexSettings({
     modelMaxRetries: readLive(config.modelMaxRetries),
+    implicitReasoningEffort: readLive(config.implicitReasoningEffort) as OpenAICodexSettingsConfig['implicitReasoningEffort'],
     enableSearch: readLive(config.enableSearch),
     enableImageTool: readLive(config.enableImageTool),
     enableImageGeneration: readLive(config.enableImageGeneration),
@@ -224,6 +233,7 @@ export function apply(ctx: Context, config: VolatileConfig): void {
     credentials,
     () => ctx.get('attachments'),
     () => resolveOpenAICodexSettings(current()).modelMaxRetries,
+    () => resolveOpenAICodexSettings(current()).implicitReasoningEffort,
   )
   const adapterRegistration = ctx.llm.registerAdapter([OPENAI_CODEX_PROVIDER], adapter)
   let registeredModelMaxRetries = resolveOpenAICodexSettings(current()).modelMaxRetries

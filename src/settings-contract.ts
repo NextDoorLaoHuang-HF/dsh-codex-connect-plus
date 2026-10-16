@@ -10,6 +10,13 @@ export type OpenAICodexSearchMode = 'cached' | 'indexed' | 'live'
 /** Search-context sizes accepted by the Codex standalone search endpoint. */
 export type OpenAICodexSearchContextSize = 'low' | 'medium' | 'high'
 
+/**
+ * Reasoning efforts this plugin may inject into requests that carry no
+ * explicit effort (context compaction, session-title generation).
+ * Empty string keeps the model catalog's implicit default.
+ */
+export type OpenAICodexImplicitReasoningEffort = '' | 'minimal' | 'low' | 'medium' | 'high' | 'xhigh' | 'max'
+
 /** Default model used by the standalone search endpoint. */
 export const DEFAULT_OPENAI_CODEX_SEARCH_MODEL = 'gpt-5.6-sol'
 /** Default search mode, matching the official local Codex client. */
@@ -27,10 +34,15 @@ export const DEFAULT_OPENAI_CODEX_MODEL_MAX_RETRIES = 0
  */
 export const MAX_OPENAI_CODEX_MODEL_RETRIES = 5
 
+/** Default implicit reasoning effort: keep the model catalog default. */
+export const DEFAULT_OPENAI_CODEX_IMPLICIT_REASONING_EFFORT: OpenAICodexImplicitReasoningEffort = ''
+
 /** Fully resolved user-editable section presented by Plugin configuration. */
 export interface OpenAICodexSettingsConfig {
   /** Extra full model requests after a transient failure. */
   modelMaxRetries: number
+  /** Effort injected into effort-less requests such as compaction. */
+  implicitReasoningEffort: OpenAICodexImplicitReasoningEffort
   enableSearch: boolean
   enableImageTool: boolean
   enableImageGeneration: boolean
@@ -42,6 +54,7 @@ export interface OpenAICodexSettingsConfig {
 
 export const DEFAULT_OPENAI_CODEX_SETTINGS: Readonly<OpenAICodexSettingsConfig> = Object.freeze({
   modelMaxRetries: DEFAULT_OPENAI_CODEX_MODEL_MAX_RETRIES,
+  implicitReasoningEffort: DEFAULT_OPENAI_CODEX_IMPLICIT_REASONING_EFFORT,
   enableSearch: false,
   enableImageTool: false,
   enableImageGeneration: true,
@@ -64,8 +77,10 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 
 /** Narrow the redacted settings wire payload before it enters React state. */
 export function decodeOpenAICodexSettings(value: unknown): OpenAICodexSettingsConfig | undefined {
+  const IMPLICIT_EFFORTS: readonly OpenAICodexImplicitReasoningEffort[] = ['', 'minimal', 'low', 'medium', 'high', 'xhigh', 'max']
   if (!isRecord(value)) return undefined
   const modelMaxRetries = value['modelMaxRetries']
+  const implicitReasoningEffort = value['implicitReasoningEffort']
   const enableSearch = value['enableSearch']
   const enableImageTool = value['enableImageTool']
   const enableImageGeneration = value['enableImageGeneration']
@@ -75,6 +90,8 @@ export function decodeOpenAICodexSettings(value: unknown): OpenAICodexSettingsCo
   const searchMaxOutputTokens = value['searchMaxOutputTokens']
   if (typeof modelMaxRetries !== 'number' || !Number.isInteger(modelMaxRetries)
     || modelMaxRetries < 0 || modelMaxRetries > MAX_OPENAI_CODEX_MODEL_RETRIES) return undefined
+  if (typeof implicitReasoningEffort !== 'string'
+    || !IMPLICIT_EFFORTS.includes(implicitReasoningEffort as OpenAICodexImplicitReasoningEffort)) return undefined
   if (typeof enableSearch !== 'boolean' || typeof enableImageTool !== 'boolean' || typeof enableImageGeneration !== 'boolean') return undefined
   if (typeof searchModel !== 'string' || searchModel.trim().length === 0) return undefined
   if (searchMode !== 'cached' && searchMode !== 'indexed' && searchMode !== 'live') return undefined
@@ -82,6 +99,7 @@ export function decodeOpenAICodexSettings(value: unknown): OpenAICodexSettingsCo
   if (typeof searchMaxOutputTokens !== 'number' || !Number.isInteger(searchMaxOutputTokens) || searchMaxOutputTokens < 1) return undefined
   return {
     modelMaxRetries,
+    implicitReasoningEffort: implicitReasoningEffort as OpenAICodexImplicitReasoningEffort,
     enableSearch,
     enableImageTool,
     enableImageGeneration,

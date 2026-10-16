@@ -55,7 +55,7 @@ dsh plugin --profile web add dsh-codex-connect-plus@beta
 Immutable GitHub fallback:
 
 ```sh
-dsh plugin --profile web add 'github:stoneface10/dsh-codex-connect-plus#v0.2.0-beta.4'
+dsh plugin --profile web add 'github:stoneface10/dsh-codex-connect-plus#v0.2.0-beta.5'
 ```
 
 A matching `.tgz` is also attached to the GitHub prerelease.
@@ -130,6 +130,10 @@ The repository intentionally commits both `src/` and generated `lib/`, matching 
 See the [Token/quota optimization report (中文)](docs/USAGE-QUOTA-OPTIMIZATION.zh.md) for retry, cache, compaction, and subagent guidance. See [RELEASING.md](RELEASING.md) for the Alpha checklist.
 
 ## Changelog
+
+### 0.2.0-beta.5
+
+- Added the `implicitReasoningEffort` setting (plugin card → Optional capabilities): a configurable reasoning effort injected into requests that carry no explicit effort — context compaction and session-title generation. Empty (Automatic) keeps each model catalog's implicit default; a model that rejects the configured effort keeps its catalog default instead of failing. Requests with an explicit effort (normal agent traffic) are never rewritten.
 
 ### 0.2.0-beta.4
 

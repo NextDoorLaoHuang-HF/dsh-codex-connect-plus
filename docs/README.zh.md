@@ -55,7 +55,7 @@ dsh plugin --profile web add dsh-codex-connect-plus@beta
 不可变 GitHub 备用安装方式：
 
 ```sh
-dsh plugin --profile web add 'github:stoneface10/dsh-codex-connect-plus#v0.2.0-beta.3'
+dsh plugin --profile web add 'github:stoneface10/dsh-codex-connect-plus#v0.2.0-beta.5'
 ```
 
 GitHub 预发布中也附带了对应的 `.tgz`。
