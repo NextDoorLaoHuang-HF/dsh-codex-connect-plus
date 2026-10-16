@@ -192,4 +192,59 @@ describe('OpenAI Codex compaction request', () => {
       },
     ])
   })
+
+  it('sends a supported reasoning effort for gpt-6.1-sol compaction instead of the rejected "none"', async () => {
+    root = await mkdtemp(join(tmpdir(), 'dsh-openai-codex-compaction-61-'))
+    vi.stubEnv('DSH_HOME', root)
+    const store = new OpenAICodex.OpenAICodexCredentialStore()
+    await store.modify(OpenAICodex.OPENAI_CODEX_PROVIDER, () => Promise.resolve({
+      type: 'oauth',
+      access: accessToken('account-61'),
+      refresh: 'refresh-token',
+      expires: Date.now() + 3_600_000,
+      accountId: 'account-61',
+    }))
+
+    let request: { url: string; init: RequestInit } | undefined
+    vi.stubGlobal('fetch', async (input: string | URL | Request, init?: RequestInit) => {
+      if (init === undefined) throw new Error('expected request init')
+      request = { url: String(input), init }
+      return new Response(responseEvents(), {
+        status: 200,
+        headers: { 'content-type': 'text/event-stream' },
+      })
+    })
+
+    const messages = [
+      createUserMessage({
+        content: [{ type: 'text', text: 'Summarize the conversation for compaction.' }],
+        source: { kind: 'user' },
+      }),
+    ]
+
+    const ctx = new Context()
+    context = ctx
+    await ctx.plugin(LlmRuntime)
+    await ctx.plugin(WebRuntime)
+    await ctx.plugin(OpenAICodex)
+    const assembler = new BlockAssembler()
+    for await (const chunk of ctx.llm.stream({
+      provider: 'openai-codex',
+      model: 'gpt-6.1-sol',
+      purpose: 'compaction',
+      system: 'Preserve decisions and unresolved work.',
+      messages,
+      sessionId: 'session-compaction-61' as never,
+    })) assembler.push(chunk)
+
+    expect(assembler.message({ provider: 'openai-codex', model: 'gpt-6.1-sol' }).content)
+      .toEqual([{ type: 'text', text: 'summary' }])
+    if (request === undefined) throw new Error('Codex request was not captured')
+    const captured = request as { url: string; init: RequestInit }
+    const body = requestJson(captured.init)
+    // gpt-6.1-sol rejects effort "none" with HTTP 400, which used to break every
+    // compaction attempt; the implicit no-effort fallback must map to "low".
+    expect(body).toMatchObject({ model: 'gpt-6.1-sol' })
+    expect((body as { reasoning?: { effort?: string } }).reasoning).toEqual({ effort: 'low' })
+  })
 })

@@ -50,7 +50,13 @@ const GPT_61_SOL_MODEL: Model<'openai-codex-responses'> = {
   contextWindow: 272000,
   maxTokens: 128000,
   thinkingLevelMap: {
-    off: 'none',
+    // gpt-6.1-sol rejects the wire value "none" with HTTP 400 ("Unsupported
+    // value: 'none' is not supported with the 'gpt-6.1-sol' model"), which
+    // broke every compaction request: compaction sends no explicit effort, so
+    // pi-ai falls back to thinkingLevelMap.off. Map the implicit off level to
+    // the cheapest supported effort instead, mirroring the verified mapping in
+    // dsh-risk-first-approval.
+    off: 'low',
     minimal: 'low',
     low: 'low',
     medium: 'medium',

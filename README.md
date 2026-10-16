@@ -55,7 +55,7 @@ dsh plugin --profile web add dsh-codex-connect-plus@beta
 Immutable GitHub fallback:
 
 ```sh
-dsh plugin --profile web add 'github:stoneface10/dsh-codex-connect-plus#v0.2.0-beta.3'
+dsh plugin --profile web add 'github:stoneface10/dsh-codex-connect-plus#v0.2.0-beta.4'
 ```
 
 A matching `.tgz` is also attached to the GitHub prerelease.
@@ -128,6 +128,12 @@ npm pack --dry-run
 The repository intentionally commits both `src/` and generated `lib/`, matching the upstream distribution model. The npm/Release `.tgz` includes runtime files and documentation, but excludes source, tests, scripts, credentials, logs, and local outputs.
 
 See the [Token/quota optimization report (中文)](docs/USAGE-QUOTA-OPTIMIZATION.zh.md) for retry, cache, compaction, and subagent guidance. See [RELEASING.md](RELEASING.md) for the Alpha checklist.
+
+## Changelog
+
+### 0.2.0-beta.4
+
+- Fixed gpt-6.1-sol compaction: the model's `thinkingLevelMap` mapped the implicit `off` thinking level to the wire value `none`, which the Codex backend rejects with HTTP 400 ("Unsupported value: 'none' is not supported with the 'gpt-6.1-sol' model"). Compaction sends no explicit reasoning effort, so **every** compaction attempt failed, keeping long sessions pinned at the context ceiling (repeated prune/compaction thrash) and inflating per-call token usage. The implicit `off` level now maps to `low`, the cheapest supported effort, mirroring the verified mapping in `dsh-risk-first-approval`. Verified by a captured-request test (`tests/codex-compaction.spec.ts`).
 
 ## Legal / provenance
 
