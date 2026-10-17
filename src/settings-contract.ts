@@ -80,7 +80,9 @@ export function decodeOpenAICodexSettings(value: unknown): OpenAICodexSettingsCo
   const IMPLICIT_EFFORTS: readonly OpenAICodexImplicitReasoningEffort[] = ['', 'minimal', 'low', 'medium', 'high', 'xhigh', 'max']
   if (!isRecord(value)) return undefined
   const modelMaxRetries = value['modelMaxRetries']
-  const implicitReasoningEffort = value['implicitReasoningEffort']
+  // Settings stored before this field existed must keep decoding; a missing
+  // value is the schema default.
+  const implicitReasoningEffort = value['implicitReasoningEffort'] ?? ''
   const enableSearch = value['enableSearch']
   const enableImageTool = value['enableImageTool']
   const enableImageGeneration = value['enableImageGeneration']
