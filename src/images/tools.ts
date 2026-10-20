@@ -1,5 +1,5 @@
 /* Adapted for dsh-codex-connect-plus from dsh-image2-draw and codex-gpt-image; Copyright 2026 0751; see THIRD_PARTY_NOTICES.md. */
-/** Harness-native gpt-image-2 generation/edit tools and durable image presentation. */
+/** Harness-native gpt-image-2 / gpt-image-2.5 generation/edit tools and durable image presentation. */
 
 import { lstat, mkdir, realpath, writeFile } from 'node:fs/promises'
 import { basename, isAbsolute, join, relative, resolve } from 'node:path'
@@ -12,15 +12,16 @@ import { defineTool } from '@deepseek-ai/dsh-tools'
 import type { ToolExecution } from '@deepseek-ai/dsh-tools'
 import type { OpenAICodexAuthRuntime } from '../auth-runtime.ts'
 import {
+  CODEX_IMAGE_DEFAULT_MODEL,
   CODEX_IMAGE_MAX_INPUT_BYTES,
   CODEX_IMAGE_MAX_INPUTS,
-  CODEX_IMAGE_MODEL,
+  CODEX_IMAGE_MODEL_IDS,
   createCodexImageRequest,
   detectCodexImageType,
   imageDataUrl,
   requestCodexImages,
 } from './protocol.ts'
-import type { CodexImageMode } from './protocol.ts'
+import type { CodexImageMode, CodexImageModel } from './protocol.ts'
 export { CODEX_IMAGE_EDIT_TOOL_NAME, CODEX_IMAGE_GENERATE_TOOL_NAME } from './contract.ts'
 import { CODEX_IMAGE_EDIT_TOOL_NAME, CODEX_IMAGE_GENERATE_TOOL_NAME } from './contract.ts'
 const OUTPUT_DIR = 'outputs/codex-image'
@@ -44,7 +45,7 @@ interface CodexImageValue {
   files: string[]
   images: CodexImageValueRef[]
   provider: 'openai-codex'
-  model: typeof CODEX_IMAGE_MODEL
+  model: CodexImageModel
   size: string
   quality: string
   mode: CodexImageMode
@@ -53,6 +54,7 @@ interface CodexImageValue {
 
 interface CommonImageArgs {
   prompt: string
+  model?: string
   size?: string
   quality?: string
   background?: string
@@ -181,6 +183,7 @@ async function executeImage(
   }
   const request = createCodexImageRequest({
     prompt: args.prompt,
+    ...args.model === undefined ? {} : { model: args.model },
     ...args.size === undefined ? {} : { size: args.size },
     ...args.quality === undefined ? {} : { quality: args.quality },
     ...args.background === undefined ? {} : { background: args.background },
@@ -216,7 +219,7 @@ async function executeImage(
     files,
     images: attachmentValues,
     provider: 'openai-codex',
-    model: CODEX_IMAGE_MODEL,
+    model: request.model,
     size: request.size,
     quality: request.quality,
     mode,
@@ -246,7 +249,7 @@ const outputSchema = {
       },
     },
     provider: { type: 'string' as const, required: true, const: 'openai-codex' },
-    model: { type: 'string' as const, required: true, const: CODEX_IMAGE_MODEL },
+    model: { type: 'string' as const, required: true, enum: [...CODEX_IMAGE_MODEL_IDS] },
     size: { type: 'string' as const, required: true },
     quality: { type: 'string' as const, required: true },
     mode: { type: 'string' as const, required: true, enum: ['generate', 'edit'] as const },
@@ -256,9 +259,14 @@ const outputSchema = {
 
 const commonParameters = {
   prompt: { type: 'string' as const, required: true, description: 'Detailed production prompt covering composition, style, lighting, color, materials, constraints, and exact required text.' },
+  model: {
+    type: 'string' as const,
+    enum: [...CODEX_IMAGE_MODEL_IDS],
+    description: `Image model: ${CODEX_IMAGE_MODEL_IDS.join(', ')}; default ${CODEX_IMAGE_DEFAULT_MODEL}. gpt-image-2.5 variants also accept xhigh/max quality and transparent backgrounds.`,
+  },
   size: { type: 'string' as const, description: 'adaptive (default), portrait, landscape, square, or WIDTHxHEIGHT; multiples of 16, longest edge <=3840, ratio <=3:1.' },
-  quality: { type: 'string' as const, description: 'low, medium, high, or auto (default).' },
-  background: { type: 'string' as const, description: 'auto (default) or opaque; gpt-image-2 does not support transparent output here.' },
+  quality: { type: 'string' as const, description: 'low, medium, high, or auto (default); xhigh and max additionally for gpt-image-2.5 models.' },
+  background: { type: 'string' as const, description: 'auto (default) or opaque; transparent additionally for gpt-image-2.5 models.' },
   moderation: { type: 'string' as const, description: 'auto (default) or low.' },
   count: { type: 'number' as const, description: 'Number of images from 1 to 4; default 1.' },
 } as const
@@ -267,7 +275,7 @@ const commonParameters = {
 export function registerCodexImageTools(ctx: Context, auth: OpenAICodexAuthRuntime): void {
   ctx.tools.register(defineTool({
     name: CODEX_IMAGE_GENERATE_TOOL_NAME,
-    description: 'Generate 1-4 images with gpt-image-2 through the ChatGPT/Codex OAuth session already signed in to Codex Connect Plus. Saves files under the current session outputs/codex-image directory. Requests may take minutes; do not retry automatically after failure or timeout.',
+    description: 'Generate 1-4 images with gpt-image-2 or a gpt-image-2.5 variant (flare/sunburst) through the ChatGPT/Codex OAuth session already signed in to Codex Connect Plus. Saves files under the current session outputs/codex-image directory. Requests may take minutes; do not retry automatically after failure or timeout.',
     parameters: commonParameters,
     output: { schema: outputSchema, render: renderImageResult },
     isConcurrencySafe: () => true,
@@ -275,7 +283,7 @@ export function registerCodexImageTools(ctx: Context, auth: OpenAICodexAuthRunti
   }))
   ctx.tools.register(defineTool({
     name: CODEX_IMAGE_EDIT_TOOL_NAME,
-    description: 'Edit 1-8 local PNG/JPEG/WebP reference images (each <=4MB) with gpt-image-2 through the existing ChatGPT/Codex OAuth session. Relative paths resolve from the current session cwd.',
+    description: 'Edit 1-8 local PNG/JPEG/WebP reference images (each <=4MB) with gpt-image-2 or a gpt-image-2.5 variant (flare/sunburst) through the existing ChatGPT/Codex OAuth session. Relative paths resolve from the current session cwd.',
     parameters: {
       ...commonParameters,
       refs: { type: 'array' as const, required: true, items: { type: 'string' as const }, description: 'Reference image paths (1-8).' },

@@ -2,7 +2,7 @@
 /** English copy for the OpenAI Codex Plugin configuration card. */
 export const en = {
   title: 'Codex Connect Plus',
-  intro: 'Use your ChatGPT subscription in DeepSeek Harness to access Codex models and generate or edit images with gpt-image-2—no OpenAI Platform API key required.',
+  intro: 'Use your ChatGPT subscription in DeepSeek Harness to access Codex models and generate or edit images with gpt-image-2/2.5—no OpenAI Platform API key required.',
   accountHeading: 'ChatGPT account',
   expand: 'Expand settings',
   collapse: 'Collapse settings',
@@ -64,7 +64,7 @@ export const en = {
   searchMaxOutputTokens: 'Maximum search output tokens',
   enableImageTool: 'Enable view_image tool',
   enableImageToolHelp: 'Allows approved local reads and public-network image fetches for vision-capable models.',
-  enableImageGeneration: 'Enable gpt-image-2 generation and editing',
+  enableImageGeneration: 'Enable gpt-image-2/2.5 generation and editing',
   enableImageGenerationHelp: 'Registers codex_image_generate and codex_image_edit using this account. Images are saved locally and attached to the conversation.',
   routingNote: 'These settings never change the default model or the profile’s global search route.',
   settingsLoading: 'Loading plugin settings…',
@@ -86,7 +86,7 @@ export type OpenAICodexSettingsKey = keyof typeof en
 /** Chinese copy for the OpenAI Codex Plugin configuration card. */
 export const zh: { [Key in OpenAICodexSettingsKey]: string } = {
   title: 'Codex Connect Plus',
-  intro: '在 DeepSeek Harness 中使用您的 ChatGPT 订阅额度调用 Codex 模型，并使用 gpt-image-2 生成和编辑图片，无需 OpenAI Platform API Key。',
+  intro: '在 DeepSeek Harness 中使用您的 ChatGPT 订阅额度调用 Codex 模型，并使用 gpt-image-2/2.5 生成和编辑图片，无需 OpenAI Platform API Key。',
   accountHeading: 'ChatGPT 账户',
   expand: '展开设置',
   collapse: '折叠设置',
@@ -148,7 +148,7 @@ export const zh: { [Key in OpenAICodexSettingsKey]: string } = {
   searchMaxOutputTokens: '搜索最大输出 Tokens',
   enableImageTool: '启用 view_image 工具',
   enableImageToolHelp: '允许具备视觉能力的模型在审批后读取本地图片或获取公网图片。',
-  enableImageGeneration: '启用 gpt-image-2 文生图与编辑',
+  enableImageGeneration: '启用 gpt-image-2/2.5 文生图与编辑',
   enableImageGenerationHelp: '使用当前账户注册 codex_image_generate 和 codex_image_edit；图片会保存到本地并附加到会话。',
   routingNote: '这些设置绝不会改动默认模型，也不会接管此 profile 的全局搜索路由。',
   settingsLoading: '正在加载插件设置…',

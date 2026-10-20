@@ -16,7 +16,7 @@ Sign in once with ChatGPT OAuth. Codex model requests use the signed-in account'
 ### What you get
 
 - **Codex models in the normal DSH model picker** — no separate CLI workflow.
-- **`gpt-image-2` generation and editing** — create images from prompts or edit 1–8 local references, with inline previews and local output files.
+- **`gpt-image-2` / `gpt-image-2.5` generation and editing** — create images from prompts or edit 1–8 local references with `gpt-image-2` (default) or a `gpt-image-2.5-flare` / `gpt-image-2.5-sunburst` variant, with inline previews and local output files.
 - **No OpenAI Platform API key or pay-as-you-go API billing setup** — authorization comes from your user-approved ChatGPT/Codex OAuth session.
 - **Quota-conscious defaults** — automatic model retries default to `0`, and image requests are never silently retried.
 - **Quota reset times** — the account page shows when each Codex rate-limit window (5-hour and weekly) resets, with an absolute local time and a live countdown.
@@ -34,7 +34,7 @@ Sign in once with ChatGPT OAuth. Codex model requests use the signed-in account'
 - OpenAI Codex model catalog through Harness's normal LLM service.
 - Optional standalone Codex search provider.
 - Optional `view_image` tool for vision-capable models.
-- `codex_image_generate` for 1-4 `gpt-image-2` outputs.
+- `codex_image_generate` for 1-4 outputs on `gpt-image-2` or the gpt-image-2.5 variants (`model` parameter).
 - `codex_image_edit` for 1-8 local PNG/JPEG/WebP references and an optional mask.
 - Durable DSH attachments, session-authorized replay, inline preview, and local files under `outputs/codex-image`.
 - Fixed upstream origins, no redirects, bounded inputs/responses, cancellation, timeout, strict image signatures, and redacted provider errors.
@@ -55,7 +55,7 @@ dsh plugin --profile web add dsh-codex-connect-plus@beta
 Immutable GitHub fallback:
 
 ```sh
-dsh plugin --profile web add 'github:stoneface10/dsh-codex-connect-plus#v0.2.0-beta.6'
+dsh plugin --profile web add 'github:stoneface10/dsh-codex-connect-plus#v0.2.0-beta.7'
 ```
 
 A matching `.tgz` is also attached to the GitHub prerelease.

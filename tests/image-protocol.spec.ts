@@ -40,6 +40,19 @@ describe('Codex Images protocol', () => {
     expect(() => createCodexImageRequest({ prompt: 'test', background: 'transparent' })).toThrow(/background/u)
   })
 
+  it('selects gpt-image-2.5 variants and their extended quality and background', () => {
+    expect(createCodexImageRequest({ prompt: 'test', model: 'gpt-image-2.5-flare', quality: 'max', background: 'transparent' })).toMatchObject({
+      model: 'gpt-image-2.5-flare', quality: 'max', background: 'transparent',
+    })
+    expect(createCodexImageRequest({ prompt: 'test', model: 'gpt-image-2.5-sunburst', quality: 'xhigh' })).toMatchObject({
+      model: 'gpt-image-2.5-sunburst', quality: 'xhigh',
+    })
+    expect(() => createCodexImageRequest({ prompt: 'test', model: 'gpt-image-2.5' })).toThrow(/model/u)
+    expect(() => createCodexImageRequest({ prompt: 'test', model: 'gpt-image-3' })).toThrow(/model/u)
+    expect(() => createCodexImageRequest({ prompt: 'test', quality: 'max' })).toThrow(/quality/u)
+    expect(() => createCodexImageRequest({ prompt: 'test', model: 'gpt-image-2.5-flare', quality: 'ultra' })).toThrow(/quality/u)
+  })
+
   it('validates decoded base64 and image signatures', () => {
     expect(detectCodexImageType(png)).toEqual({ extension: '.png', mediaType: 'image/png' })
     const decoded = decodeCodexImageResponse({ data: [{ b64_json: Buffer.from(png).toString('base64'), revised_prompt: 'better' }] })

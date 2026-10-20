@@ -24,9 +24,11 @@ import { viewImageTool } from './view-image.ts'
 import { registerCodexImageTools } from './images/tools.ts'
 export { CODEX_IMAGE_EDIT_TOOL_NAME, CODEX_IMAGE_GENERATE_TOOL_NAME } from './images/tools.ts'
 export {
+  CODEX_IMAGE_DEFAULT_MODEL,
   CODEX_IMAGE_EDIT_URL,
   CODEX_IMAGE_GENERATE_URL,
   CODEX_IMAGE_MODEL,
+  CODEX_IMAGE_MODEL_IDS,
   createCodexImageRequest,
   decodeCodexImageResponse,
   detectCodexImageType,

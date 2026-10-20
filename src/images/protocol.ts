@@ -5,7 +5,14 @@ import type { OpenAICodexAuthRuntime } from '../auth-runtime.ts'
 import { CODEX_CONNECT_VERSION } from '../version.ts'
 import { redactProviderDiagnostic } from '../redaction.ts'
 
-export const CODEX_IMAGE_MODEL = 'gpt-image-2'
+/** Selectable image models on the Codex Images endpoints; gpt-image-2.5 ships as two variants. */
+export const CODEX_IMAGE_MODEL_IDS = ['gpt-image-2', 'gpt-image-2.5-flare', 'gpt-image-2.5-sunburst'] as const
+export type CodexImageModel = typeof CODEX_IMAGE_MODEL_IDS[number]
+export const CODEX_IMAGE_DEFAULT_MODEL: CodexImageModel = 'gpt-image-2'
+const CODEX_IMAGE_2_5_MODELS: readonly CodexImageModel[] = ['gpt-image-2.5-flare', 'gpt-image-2.5-sunburst']
+
+/** Backwards-compatible alias for the default request model. */
+export const CODEX_IMAGE_MODEL = CODEX_IMAGE_DEFAULT_MODEL
 export const CODEX_IMAGE_GENERATE_URL = 'https://chatgpt.com/backend-api/codex/images/generations'
 export const CODEX_IMAGE_EDIT_URL = 'https://chatgpt.com/backend-api/codex/images/edits'
 export const CODEX_IMAGE_TIMEOUT_MS = 10 * 60 * 1000
@@ -22,8 +29,8 @@ const MAX_PIXELS = 8_294_400
 const MAX_EDGE = 3840
 const MAX_RATIO = 3
 
-export type CodexImageQuality = 'low' | 'medium' | 'high' | 'auto'
-export type CodexImageBackground = 'auto' | 'opaque'
+export type CodexImageQuality = 'low' | 'medium' | 'high' | 'auto' | 'xhigh' | 'max'
+export type CodexImageBackground = 'auto' | 'opaque' | 'transparent'
 export type CodexImageModeration = 'auto' | 'low'
 export type CodexImageMediaType = 'image/png' | 'image/jpeg' | 'image/webp'
 export type CodexImageMode = 'generate' | 'edit'
@@ -35,7 +42,7 @@ export interface CodexImageType {
 
 export interface CodexImageRequest {
   prompt: string
-  model: typeof CODEX_IMAGE_MODEL
+  model: CodexImageModel
   n: number
   size: string
   quality: CodexImageQuality
@@ -109,16 +116,29 @@ export function imageDataUrl(data: Uint8Array, mediaType: CodexImageMediaType): 
   return `data:${mediaType};base64,${Buffer.from(data).toString('base64')}`
 }
 
-function normalizedQuality(value: string | undefined): CodexImageQuality {
-  if (value === undefined) return 'auto'
-  if (value === 'low' || value === 'medium' || value === 'high' || value === 'auto') return value
-  throw new Error('quality must be low, medium, high, or auto')
+function normalizedModel(value: string | undefined): CodexImageModel {
+  const model = value ?? CODEX_IMAGE_DEFAULT_MODEL
+  if ((CODEX_IMAGE_MODEL_IDS as readonly string[]).includes(model)) return model as CodexImageModel
+  throw new Error(`model must be one of ${CODEX_IMAGE_MODEL_IDS.join(', ')}`)
 }
 
-function normalizedBackground(value: string | undefined): CodexImageBackground {
+/** gpt-image-2.5 variants additionally accept transparent backgrounds and xhigh/max quality. */
+export function isCodexImage25Model(model: CodexImageModel): boolean {
+  return CODEX_IMAGE_2_5_MODELS.includes(model)
+}
+
+function normalizedQuality(value: string | undefined, model: CodexImageModel): CodexImageQuality {
+  if (value === undefined) return 'auto'
+  if (value === 'low' || value === 'medium' || value === 'high' || value === 'auto') return value
+  if ((value === 'xhigh' || value === 'max') && isCodexImage25Model(model)) return value
+  throw new Error(`quality must be low, medium, high, or auto${isCodexImage25Model(model) ? ', or xhigh or max for gpt-image-2.5 models' : ''}`)
+}
+
+function normalizedBackground(value: string | undefined, model: CodexImageModel): CodexImageBackground {
   if (value === undefined) return 'auto'
   if (value === 'auto' || value === 'opaque') return value
-  throw new Error('background must be auto or opaque')
+  if (value === 'transparent' && isCodexImage25Model(model)) return value
+  throw new Error(`background must be auto or opaque${isCodexImage25Model(model) ? ', or transparent for gpt-image-2.5 models' : ''}`)
 }
 
 function normalizedModeration(value: string | undefined): CodexImageModeration {
@@ -130,6 +150,7 @@ function normalizedModeration(value: string | undefined): CodexImageModeration {
 /** Validate common tool input and produce the fixed JSON request fields. */
 export function createCodexImageRequest(input: {
   prompt: string
+  model?: string
   size?: string
   quality?: string
   background?: string
@@ -143,14 +164,15 @@ export function createCodexImageRequest(input: {
   if (prompt.length > CODEX_IMAGE_MAX_PROMPT_CHARS) throw new Error(`prompt must not exceed ${CODEX_IMAGE_MAX_PROMPT_CHARS} characters`)
   const count = input.count ?? 1
   if (!Number.isInteger(count) || count < 1 || count > 4) throw new Error('count must be an integer from 1 to 4')
+  const model = normalizedModel(input.model)
   return {
     prompt,
-    model: CODEX_IMAGE_MODEL,
+    model,
     n: count,
     size: resolveCodexImageSize(input.size, prompt),
-    quality: normalizedQuality(input.quality),
+    quality: normalizedQuality(input.quality, model),
     output_format: 'png',
-    background: normalizedBackground(input.background),
+    background: normalizedBackground(input.background, model),
     moderation: normalizedModeration(input.moderation),
     ...input.images === undefined ? {} : { images: input.images },
     ...input.mask === undefined ? {} : { mask: input.mask },

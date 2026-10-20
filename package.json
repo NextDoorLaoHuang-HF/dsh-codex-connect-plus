@@ -1,8 +1,8 @@
 {
   "name": "dsh-codex-connect-plus",
   "displayName": "Codex Connect Plus",
-  "description": "Use your ChatGPT subscription in DeepSeek Harness to access Codex models and generate or edit images with gpt-image-2—no OpenAI Platform API key required.",
-  "version": "0.2.0-beta.6",
+  "description": "Use your ChatGPT subscription in DeepSeek Harness to access Codex models and generate or edit images with gpt-image-2/2.5—no OpenAI Platform API key required.",
+  "version": "0.2.0-beta.7",
   "author": "0751",
   "contributors": [
     "Frank Song (dsh-codex-connect author)",

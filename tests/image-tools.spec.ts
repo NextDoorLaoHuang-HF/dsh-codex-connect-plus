@@ -26,9 +26,11 @@ describe('Codex image tools', () => {
     ])
     const generate = tools[0]
     expect(generate?.parameters).toHaveProperty('properties.prompt.type', 'string')
+    expect(generate?.parameters).toHaveProperty('properties.model.enum', ['gpt-image-2', 'gpt-image-2.5-flare', 'gpt-image-2.5-sunburst'])
     expect(generate?.parameters).toHaveProperty('required', ['prompt'])
     expect(generate?.output.schema).toHaveProperty('additionalProperties', false)
     expect(generate?.output.schema).toHaveProperty('properties.images.items.additionalProperties', false)
+    expect(generate?.output.schema).toHaveProperty('properties.model.enum', ['gpt-image-2', 'gpt-image-2.5-flare', 'gpt-image-2.5-sunburst'])
     const content = generate?.output.render({}, {
       files: ['C:/workspace/outputs/codex-image/test.png'],
       images: [{
@@ -40,7 +42,7 @@ describe('Codex image tools', () => {
         name: 'test.png',
       }],
       provider: 'openai-codex',
-      model: 'gpt-image-2',
+      model: 'gpt-image-2.5-flare',
       size: '1024x1024',
       quality: 'low',
       mode: 'generate',

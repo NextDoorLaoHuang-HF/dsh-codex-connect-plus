@@ -4,6 +4,13 @@ All notable changes to this project are documented here.
 
 ## Unreleased
 
+## 0.2.0-beta.7 - 2026-10-20
+
+### Added
+
+- `codex_image_generate` and `codex_image_edit` accept an optional `model` parameter selecting `gpt-image-2` (default), `gpt-image-2.5-flare`, or `gpt-image-2.5-sunburst`, passing the selection through to the Codex Images endpoints and the tool output/render metadata.
+- The gpt-image-2.5 variants additionally accept `quality: xhigh | max` and `background: transparent`; these values are rejected for `gpt-image-2` exactly as before.
+
 ## 0.2.0-beta.3 - 2026-10-15
 
 ### Added

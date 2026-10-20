@@ -41,11 +41,16 @@ declare const CODEX_IMAGE_GENERATE_TOOL_NAME = "codex_image_generate";
 declare const CODEX_IMAGE_EDIT_TOOL_NAME = "codex_image_edit";
 //#endregion
 //#region src/images/protocol.d.ts
-declare const CODEX_IMAGE_MODEL = "gpt-image-2";
+/** Selectable image models on the Codex Images endpoints; gpt-image-2.5 ships as two variants. */
+declare const CODEX_IMAGE_MODEL_IDS: readonly ["gpt-image-2", "gpt-image-2.5-flare", "gpt-image-2.5-sunburst"];
+type CodexImageModel = typeof CODEX_IMAGE_MODEL_IDS[number];
+declare const CODEX_IMAGE_DEFAULT_MODEL: CodexImageModel;
+/** Backwards-compatible alias for the default request model. */
+declare const CODEX_IMAGE_MODEL: "gpt-image-2";
 declare const CODEX_IMAGE_GENERATE_URL = "https://chatgpt.com/backend-api/codex/images/generations";
 declare const CODEX_IMAGE_EDIT_URL = "https://chatgpt.com/backend-api/codex/images/edits";
-type CodexImageQuality = 'low' | 'medium' | 'high' | 'auto';
-type CodexImageBackground = 'auto' | 'opaque';
+type CodexImageQuality = 'low' | 'medium' | 'high' | 'auto' | 'xhigh' | 'max';
+type CodexImageBackground = 'auto' | 'opaque' | 'transparent';
 type CodexImageModeration = 'auto' | 'low';
 type CodexImageMediaType = 'image/png' | 'image/jpeg' | 'image/webp';
 interface CodexImageType {
@@ -54,7 +59,7 @@ interface CodexImageType {
 }
 interface CodexImageRequest {
   prompt: string;
-  model: typeof CODEX_IMAGE_MODEL;
+  model: CodexImageModel;
   n: number;
   size: string;
   quality: CodexImageQuality;
@@ -80,6 +85,7 @@ declare function detectCodexImageType(data: Uint8Array): CodexImageType;
 /** Validate common tool input and produce the fixed JSON request fields. */
 declare function createCodexImageRequest(input: {
   prompt: string;
+  model?: string;
   size?: string;
   quality?: string;
   background?: string;
@@ -476,4 +482,4 @@ declare const Config: z<Schemastery.ObjectS<NoInfer<{
  */
 declare function apply(ctx: Context, config: VolatileConfig): void;
 //#endregion
-export { CODEX_IMAGE_EDIT_TOOL_NAME, CODEX_IMAGE_EDIT_URL, CODEX_IMAGE_GENERATE_TOOL_NAME, CODEX_IMAGE_GENERATE_URL, CODEX_IMAGE_MODEL, Config, DEFAULT_OPENAI_CODEX_IMPLICIT_REASONING_EFFORT, DEFAULT_OPENAI_CODEX_MODEL_MAX_RETRIES, DEFAULT_OPENAI_CODEX_SEARCH_CONTEXT_SIZE, DEFAULT_OPENAI_CODEX_SEARCH_MAX_OUTPUT_TOKENS, DEFAULT_OPENAI_CODEX_SEARCH_MODE, DEFAULT_OPENAI_CODEX_SEARCH_MODEL, DEFAULT_OPENAI_CODEX_SETTINGS, MAX_OPENAI_CODEX_MODEL_RETRIES, OPENAI_CODEX_AUTH_FILENAME, OPENAI_CODEX_BASE_URL, OPENAI_CODEX_PROVIDER, OPENAI_CODEX_SEARCH_MODEL_REQUEST_EVENT, OPENAI_CODEX_SEARCH_PROVIDER, OPENAI_CODEX_SEARCH_URL, OPENAI_CODEX_SETTINGS_NAMESPACE, OPENAI_CODEX_SETTINGS_NS, OPENAI_CODEX_USAGE_URL, type OpenAICodexAuthStatus, OpenAICodexCredentialStore, type OpenAICodexCredits, type OpenAICodexDiagnosticOptions, type OpenAICodexDiagnosticReport, type OpenAICodexIndividualLimit, type OpenAICodexRateLimit, type OpenAICodexRateLimitWindow, type OpenAICodexSearchContextSize, type OpenAICodexSearchMode, OpenAICodexSearchProvider, type OpenAICodexSearchProviderOptions, type OpenAICodexSearchRequestRecord, type OpenAICodexSettingsConfig, type OpenAICodexUsage, VIEW_IMAGE_TOOL_NAME, VolatileConfig, apply, assertNoOpenAICodexProviderConflict, createCodexImageRequest, decodeCodexImageResponse, decodeOpenAICodexSettings, detectCodexImageType, diagnoseOpenAICodex, inject, installOpenAICodexSearchEvent, loginOpenAICodex, logoutOpenAICodex, mapOpenAICodexSearchResponse, name, openAICodexAuthPath, openAICodexAuthStatus, openAICodexConflictMessage, parseOpenAICodexUsage, readOpenAICodexRateLimits, recordOpenAICodexSearchRequest, resolveCodexImageSize, resolveOpenAICodexSettings, safeCodexImageHttpError };
+export { CODEX_IMAGE_DEFAULT_MODEL, CODEX_IMAGE_EDIT_TOOL_NAME, CODEX_IMAGE_EDIT_URL, CODEX_IMAGE_GENERATE_TOOL_NAME, CODEX_IMAGE_GENERATE_URL, CODEX_IMAGE_MODEL, CODEX_IMAGE_MODEL_IDS, Config, DEFAULT_OPENAI_CODEX_IMPLICIT_REASONING_EFFORT, DEFAULT_OPENAI_CODEX_MODEL_MAX_RETRIES, DEFAULT_OPENAI_CODEX_SEARCH_CONTEXT_SIZE, DEFAULT_OPENAI_CODEX_SEARCH_MAX_OUTPUT_TOKENS, DEFAULT_OPENAI_CODEX_SEARCH_MODE, DEFAULT_OPENAI_CODEX_SEARCH_MODEL, DEFAULT_OPENAI_CODEX_SETTINGS, MAX_OPENAI_CODEX_MODEL_RETRIES, OPENAI_CODEX_AUTH_FILENAME, OPENAI_CODEX_BASE_URL, OPENAI_CODEX_PROVIDER, OPENAI_CODEX_SEARCH_MODEL_REQUEST_EVENT, OPENAI_CODEX_SEARCH_PROVIDER, OPENAI_CODEX_SEARCH_URL, OPENAI_CODEX_SETTINGS_NAMESPACE, OPENAI_CODEX_SETTINGS_NS, OPENAI_CODEX_USAGE_URL, type OpenAICodexAuthStatus, OpenAICodexCredentialStore, type OpenAICodexCredits, type OpenAICodexDiagnosticOptions, type OpenAICodexDiagnosticReport, type OpenAICodexIndividualLimit, type OpenAICodexRateLimit, type OpenAICodexRateLimitWindow, type OpenAICodexSearchContextSize, type OpenAICodexSearchMode, OpenAICodexSearchProvider, type OpenAICodexSearchProviderOptions, type OpenAICodexSearchRequestRecord, type OpenAICodexSettingsConfig, type OpenAICodexUsage, VIEW_IMAGE_TOOL_NAME, VolatileConfig, apply, assertNoOpenAICodexProviderConflict, createCodexImageRequest, decodeCodexImageResponse, decodeOpenAICodexSettings, detectCodexImageType, diagnoseOpenAICodex, inject, installOpenAICodexSearchEvent, loginOpenAICodex, logoutOpenAICodex, mapOpenAICodexSearchResponse, name, openAICodexAuthPath, openAICodexAuthStatus, openAICodexConflictMessage, parseOpenAICodexUsage, readOpenAICodexRateLimits, recordOpenAICodexSearchRequest, resolveCodexImageSize, resolveOpenAICodexSettings, safeCodexImageHttpError };

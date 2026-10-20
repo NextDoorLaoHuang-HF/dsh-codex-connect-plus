@@ -70,7 +70,7 @@ function AuthorizedImage({ image, loadImage, alt, onOpen }: {
   return <img src={url} alt={alt} style={imageStyle} onClick={() => { onOpen(url) }} />
 }
 
-/** Render running, failed, and completed gpt-image-2 calls through the owning session. */
+/** Render running, failed, and completed gpt-image-2/2.5 calls through the owning session. */
 export function CodexImageToolView({ toolName, block, loadImage }: CodexImageToolViewProps) {
   const args = useMemo(() => argsOf(block), [block])
   const images = useMemo(() => 'phase' in block ? [] : imagesOf(block), [block])
@@ -88,7 +88,7 @@ export function CodexImageToolView({ toolName, block, loadImage }: CodexImageToo
       <div style={cardStyle}>
         <div style={headStyle}><strong>{title}</strong><span style={metaStyle}>生成中</span></div>
         {prompt === undefined ? null : <p style={promptStyle}>{prompt}</p>}
-        <span style={metaStyle}>正在等待 gpt-image-2，通常需要数分钟</span>
+        <span style={metaStyle}>正在等待 gpt-image-2/2.5，通常需要数分钟</span>
       </div>
     )
   }
