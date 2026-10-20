@@ -31,13 +31,17 @@ describe('Codex Images protocol', () => {
 
   it('validates common request values', () => {
     expect(createCodexImageRequest({ prompt: 'test', count: 1 })).toMatchObject({
-      model: 'gpt-image-2', n: 1, size: '1024x1024', output_format: 'png', quality: 'auto',
+      model: 'gpt-image-2.5-sunburst', n: 1, size: '1024x1024', output_format: 'png', quality: 'auto',
+    })
+    expect(createCodexImageRequest({ prompt: 'test', quality: 'max', background: 'transparent' })).toMatchObject({
+      model: 'gpt-image-2.5-sunburst', quality: 'max', background: 'transparent',
     })
     expect(() => createCodexImageRequest({ prompt: ' ' })).toThrow(/prompt/u)
     expect(() => createCodexImageRequest({ prompt: 'x'.repeat(32_001) })).toThrow(/32000/u)
     expect(() => createCodexImageRequest({ prompt: 'test', count: 5 })).toThrow(/1 to 4/u)
     expect(() => createCodexImageRequest({ prompt: 'test', quality: 'ultra' })).toThrow(/quality/u)
-    expect(() => createCodexImageRequest({ prompt: 'test', background: 'transparent' })).toThrow(/background/u)
+    expect(() => createCodexImageRequest({ prompt: 'test', model: 'gpt-image-2', background: 'transparent' })).toThrow(/background/u)
+    expect(() => createCodexImageRequest({ prompt: 'test', model: 'gpt-image-2', quality: 'max' })).toThrow(/quality/u)
   })
 
   it('selects gpt-image-2.5 variants and their extended quality and background', () => {
@@ -49,7 +53,6 @@ describe('Codex Images protocol', () => {
     })
     expect(() => createCodexImageRequest({ prompt: 'test', model: 'gpt-image-2.5' })).toThrow(/model/u)
     expect(() => createCodexImageRequest({ prompt: 'test', model: 'gpt-image-3' })).toThrow(/model/u)
-    expect(() => createCodexImageRequest({ prompt: 'test', quality: 'max' })).toThrow(/quality/u)
     expect(() => createCodexImageRequest({ prompt: 'test', model: 'gpt-image-2.5-flare', quality: 'ultra' })).toThrow(/quality/u)
   })
 

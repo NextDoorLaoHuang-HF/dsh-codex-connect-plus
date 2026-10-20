@@ -4,6 +4,12 @@ All notable changes to this project are documented here.
 
 ## Unreleased
 
+## 0.2.0-beta.8 - 2026-10-20
+
+### Changed
+
+- The image tools now default to `gpt-image-2.5-sunburst` (base model, highest quality); `gpt-image-2.5-flare` (faster, quality comparable to gpt-image-2) and legacy `gpt-image-2` remain selectable via the `model` parameter. The Agent-visible tool and parameter descriptions now explain when to pick each variant.
+
 ## 0.2.0-beta.7 - 2026-10-20
 
 ### Added

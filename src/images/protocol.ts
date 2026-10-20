@@ -8,7 +8,7 @@ import { redactProviderDiagnostic } from '../redaction.ts'
 /** Selectable image models on the Codex Images endpoints; gpt-image-2.5 ships as two variants. */
 export const CODEX_IMAGE_MODEL_IDS = ['gpt-image-2', 'gpt-image-2.5-flare', 'gpt-image-2.5-sunburst'] as const
 export type CodexImageModel = typeof CODEX_IMAGE_MODEL_IDS[number]
-export const CODEX_IMAGE_DEFAULT_MODEL: CodexImageModel = 'gpt-image-2'
+export const CODEX_IMAGE_DEFAULT_MODEL: CodexImageModel = 'gpt-image-2.5-sunburst'
 const CODEX_IMAGE_2_5_MODELS: readonly CodexImageModel[] = ['gpt-image-2.5-flare', 'gpt-image-2.5-sunburst']
 
 /** Backwards-compatible alias for the default request model. */

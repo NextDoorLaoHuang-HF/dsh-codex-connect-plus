@@ -12,7 +12,6 @@ import { defineTool } from '@deepseek-ai/dsh-tools'
 import type { ToolExecution } from '@deepseek-ai/dsh-tools'
 import type { OpenAICodexAuthRuntime } from '../auth-runtime.ts'
 import {
-  CODEX_IMAGE_DEFAULT_MODEL,
   CODEX_IMAGE_MAX_INPUT_BYTES,
   CODEX_IMAGE_MAX_INPUTS,
   CODEX_IMAGE_MODEL_IDS,
@@ -262,7 +261,7 @@ const commonParameters = {
   model: {
     type: 'string' as const,
     enum: [...CODEX_IMAGE_MODEL_IDS],
-    description: `Image model: ${CODEX_IMAGE_MODEL_IDS.join(', ')}; default ${CODEX_IMAGE_DEFAULT_MODEL}. gpt-image-2.5 variants also accept xhigh/max quality and transparent backgrounds.`,
+    description: 'Image model. gpt-image-2.5-sunburst (default): base model, highest image quality, best for final deliverables and precise edits. gpt-image-2.5-flare: small model, faster, quality comparable to gpt-image-2, best for drafts, icons, and quick iteration. gpt-image-2: legacy. Both 2.5 variants improve precise editing and subject preservation, and accept xhigh/max quality plus transparent backgrounds.',
   },
   size: { type: 'string' as const, description: 'adaptive (default), portrait, landscape, square, or WIDTHxHEIGHT; multiples of 16, longest edge <=3840, ratio <=3:1.' },
   quality: { type: 'string' as const, description: 'low, medium, high, or auto (default); xhigh and max additionally for gpt-image-2.5 models.' },
@@ -275,7 +274,7 @@ const commonParameters = {
 export function registerCodexImageTools(ctx: Context, auth: OpenAICodexAuthRuntime): void {
   ctx.tools.register(defineTool({
     name: CODEX_IMAGE_GENERATE_TOOL_NAME,
-    description: 'Generate 1-4 images with gpt-image-2 or a gpt-image-2.5 variant (flare/sunburst) through the ChatGPT/Codex OAuth session already signed in to Codex Connect Plus. Saves files under the current session outputs/codex-image directory. Requests may take minutes; do not retry automatically after failure or timeout.',
+    description: 'Generate 1-4 images through the ChatGPT/Codex OAuth session already signed in to Codex Connect Plus. Defaults to gpt-image-2.5-sunburst (highest quality); pick gpt-image-2.5-flare for faster drafts or gpt-image-2 for the legacy model via the model parameter. Saves files under the current session outputs/codex-image directory. Requests may take minutes; do not retry automatically after failure or timeout.',
     parameters: commonParameters,
     output: { schema: outputSchema, render: renderImageResult },
     isConcurrencySafe: () => true,
@@ -283,7 +282,7 @@ export function registerCodexImageTools(ctx: Context, auth: OpenAICodexAuthRunti
   }))
   ctx.tools.register(defineTool({
     name: CODEX_IMAGE_EDIT_TOOL_NAME,
-    description: 'Edit 1-8 local PNG/JPEG/WebP reference images (each <=4MB) with gpt-image-2 or a gpt-image-2.5 variant (flare/sunburst) through the existing ChatGPT/Codex OAuth session. Relative paths resolve from the current session cwd.',
+    description: 'Edit 1-8 local PNG/JPEG/WebP reference images (each <=4MB) through the existing ChatGPT/Codex OAuth session. Defaults to gpt-image-2.5-sunburst (best precise editing and subject preservation); pick gpt-image-2.5-flare for faster iterations or gpt-image-2 for the legacy model via the model parameter. Relative paths resolve from the current session cwd.',
     parameters: {
       ...commonParameters,
       refs: { type: 'array' as const, required: true, items: { type: 'string' as const }, description: 'Reference image paths (1-8).' },

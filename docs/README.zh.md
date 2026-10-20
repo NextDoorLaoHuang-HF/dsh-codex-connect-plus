@@ -16,7 +16,7 @@
 ### 一眼看懂
 
 - **Codex 模型进入 DSH 普通模型选择器**：无需额外切换到 Codex CLI 工作流。
-- **`gpt-image-2` / `gpt-image-2.5` 文生图与图片编辑**：可从提示词生成图片，也可编辑 1–8 张本地参考图；默认 `gpt-image-2`，可通过 `model` 参数选择 `gpt-image-2.5-flare` / `gpt-image-2.5-sunburst`；结果在聊天内预览并保存到本地。
+- **`gpt-image-2` / `gpt-image-2.5` 文生图与图片编辑**：可从提示词生成图片，也可编辑 1–8 张本地参考图；默认 `gpt-image-2.5-sunburst`（画质最高），可用 `model` 参数改选 `gpt-image-2.5-flare`（更快，画质与 gpt-image-2 相当）或 `gpt-image-2`（旧模型）；结果在聊天内预览并保存到本地。
 - **无需 OpenAI Platform API Key 或按量 API 计费配置**：授权来自用户主动登录的 ChatGPT/Codex OAuth 会话。
 - **默认节省订阅额度**：模型自动重试默认为 `0`，图片请求不会静默重试。
 - **额度重置时间**：账户页显示每个 Codex 限额窗口（5 小时 / 每周）的重置时间与实时倒计时。
@@ -34,7 +34,7 @@
 - 通过 Harness 标准 LLM 服务提供 OpenAI Codex 模型目录。
 - 可选的 Codex 独立搜索提供方。
 - 可选的 `view_image` 工具。
-- `codex_image_generate`：一次生成 1–4 张图片，默认 `gpt-image-2`，可用 `model` 参数改用 gpt-image-2.5 变体。
+- `codex_image_generate`：一次生成 1–4 张图片，默认 `gpt-image-2.5-sunburst`，可用 `model` 参数改选 flare / gpt-image-2。
 - `codex_image_edit`：使用 1–8 张 PNG/JPEG/WebP 参考图及可选 mask 编辑。
 - DSH 持久附件、会话授权回放、聊天内预览，以及 `outputs/codex-image` 本地输出。
 - 固定请求源、禁止重定向、输入/响应限制、取消与超时、图片签名验证、错误脱敏。
@@ -55,7 +55,7 @@ dsh plugin --profile web add dsh-codex-connect-plus@beta
 不可变 GitHub 备用安装方式：
 
 ```sh
-dsh plugin --profile web add 'github:stoneface10/dsh-codex-connect-plus#v0.2.0-beta.7'
+dsh plugin --profile web add 'github:stoneface10/dsh-codex-connect-plus#v0.2.0-beta.8'
 ```
 
 GitHub 预发布中也附带了对应的 `.tgz`。

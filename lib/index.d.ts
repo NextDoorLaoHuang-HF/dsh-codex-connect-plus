@@ -46,7 +46,7 @@ declare const CODEX_IMAGE_MODEL_IDS: readonly ["gpt-image-2", "gpt-image-2.5-fla
 type CodexImageModel = typeof CODEX_IMAGE_MODEL_IDS[number];
 declare const CODEX_IMAGE_DEFAULT_MODEL: CodexImageModel;
 /** Backwards-compatible alias for the default request model. */
-declare const CODEX_IMAGE_MODEL: "gpt-image-2";
+declare const CODEX_IMAGE_MODEL: "gpt-image-2.5-sunburst";
 declare const CODEX_IMAGE_GENERATE_URL = "https://chatgpt.com/backend-api/codex/images/generations";
 declare const CODEX_IMAGE_EDIT_URL = "https://chatgpt.com/backend-api/codex/images/edits";
 type CodexImageQuality = 'low' | 'medium' | 'high' | 'auto' | 'xhigh' | 'max';

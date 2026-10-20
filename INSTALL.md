@@ -21,7 +21,7 @@ Install `dsh-codex-connect-plus` into one requested DeepSeek Harness profile wit
    dsh plugin --profile web add dsh-codex-connect-plus@beta
    ```
 
-   For a reproducible fallback, use the immutable `v0.2.0-beta.7` GitHub tag or download the matching prerelease `.tgz` and verify its SHA-256 before installation.
+   For a reproducible fallback, use the immutable `v0.2.0-beta.8` GitHub tag or download the matching prerelease `.tgz` and verify its SHA-256 before installation.
 
 3. Run `dsh --profile web --dump-config` and require exactly one `llm-openai-codex` row loading `dsh-codex-connect-plus`.
 4. Confirm the effective `agent-default-model` and `web.searchProvider` values are unchanged from before installation.
